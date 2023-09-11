@@ -1,0 +1,1 @@
+docker run --rm -it -v /root/SimpleSimulator:/root/SimpleSimulator harsonlau/riscv-tools /bin/bash

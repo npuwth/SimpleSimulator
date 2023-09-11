@@ -6,7 +6,7 @@
 #include<time.h>
 #include<stdlib.h>
 
-
+// decode here
 #define OP_JAL 111
 #define OP_R 51
 
@@ -44,17 +44,19 @@
 
 typedef unsigned long long REG;
 
-//主存
+// Memory, 400_000_000 bytes
 unsigned int memory[MAX]={0};
-//寄存器堆
+
+// Registers, 32*64-bit
 REG reg[32]={0};
-//PC
+
+// Program Counter
 int PC=0;
 
-//指令寄存器
+// the current instruction
 unsigned int inst=0;
 
-//各个指令解析段
+// decode current instruction
 unsigned int OP=0;
 unsigned int fuc3=0,fuc7=0;
 int shamt=0;
@@ -64,28 +66,24 @@ unsigned int imm20=0;
 unsigned int imm7=0;
 unsigned int imm5=0;
 
-//加载内存
 void load_memory();
 
-//译码
 void translate_inst();
 
-//执行
 void execute_inst();
 
-//符号扩展
 int ext_signed(unsigned int src,int bit);
 
-//获取指定位
+int ext_signed(unsigned int src,int bit)
+{
+    return 0;
+}
+
+// get specific bit
 unsigned int getbit(int s,int e);
 
 unsigned int getbit(int s,int e)
 {
 	return 0;
-}
-
-int ext_signed(unsigned int src,int bit)
-{
-    return 0;
 }
 
