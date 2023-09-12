@@ -49,7 +49,7 @@ int main()
         reg[0]=0;//一直为零
 
 	}
-    printf("Instruct Num: %ld\n",inst_num);
+    printf("Instruct Num: %lld\n",inst_num);
 
 	return 0;
 }

@@ -1,10 +1,9 @@
 #include<iostream>
 #include<stdio.h>
 #include<math.h>
-#include <io.h>
-#include <process.h>
 #include<time.h>
 #include<stdlib.h>
+#include<unistd.h>
 
 // decode here
 #define OP_JAL 111

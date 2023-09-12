@@ -18,7 +18,7 @@ unsigned int symnum=0;
 unsigned int symadr=0;
 unsigned int symsize=0;
 
-unsigned int index=0;
+unsigned int symindex=0;
 
 unsigned int stradr=0;
 
@@ -70,13 +70,15 @@ void read_Elf_header()
 
 	fprintf(elf," Version:  \n");
 
-	fprintf(elf," Entry point address:  0x%x\n");
+	// fprintf(elf," Entry point address:  0x%x\n");
+	fprintf(elf," Entry point address:  0x\n");
 
 	fprintf(elf," Start of program headers:    bytes into  file\n");
 
 	fprintf(elf," Start of section headers:    bytes into  file\n");
 
-	fprintf(elf," Flags:  0x%x\n");
+	// fprintf(elf," Flags:  0x%x\n");
+	fprintf(elf," Flags:  0x\n");
 
 	fprintf(elf," Size of this header:   Bytes\n");
 
@@ -164,7 +166,8 @@ void read_symtable()
 		//file should be relocated
 		fread(&elf64_sym,1,sizeof(elf64_sym),file);
 
-		fprintf(elf," Name:  %40s   ");
+		// fprintf(elf," Name:  %40s   ");
+		fprintf(elf," Name:   ");
 
 		fprintf(elf," Bind:   ");
 		
