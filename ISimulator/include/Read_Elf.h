@@ -84,7 +84,6 @@ typedef struct
 	Elf64_Xword st_size; /* Size of object (e.g., common) */
 } Elf64_Sym;
 
-
 typedef struct
 {
 	Elf64_Word p_type; /* Type of segment */
@@ -105,27 +104,11 @@ void read_symtable();
 void read_Phdr();
 
 
-//代码段在解释文件中的偏移地址
-unsigned int cadr=0;
-
-//代码段的长度
-unsigned int csize=0;
-
-//代码段在内存中的虚拟地址
-unsigned int vadr=0;
-
-//全局数据段在内存的地址
-unsigned long long gp=0;
-
-//main函数在内存中地址
-unsigned int madr=0;
-
-//程序结束时的PC
-unsigned int endPC=0;
-
-//程序的入口地址
-unsigned int entry=0;
-
-FILE *file=NULL;
-
-
+unsigned long cadr = 0;  //代码段在elf文件中的偏移地址
+unsigned long csize = 0; //代码段的长度
+unsigned int vadr = 0;   //代码段在内存中的虚拟地址
+unsigned long gp = 0;    //全局数据段在内存的地址
+unsigned int madr = 0;   //main函数在内存中地址
+unsigned int endPC = 0;  //程序结束时的PC
+unsigned long entry = 0; //程序的入口地址
+FILE *file = NULL;       //读取的目标elf文件
