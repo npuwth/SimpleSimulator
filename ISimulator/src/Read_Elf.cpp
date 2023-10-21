@@ -22,19 +22,8 @@ unsigned int symindex = 0;
 unsigned long char2num(unsigned char* c, int n) {
 	unsigned long f = 1;
 	int i = 0, ans = 0;
-	// XXXX_XXXX, each X is 8-bit	
-	while(i < n) {
-		ans += f * c[i];
-		f *= 16;
-		i++;
-	}
-	return ans;
-}
-
-unsigned long char2addr(unsigned char* c, int n) {
-	unsigned long f = 1;
-	int i = 0, ans = 0;
-	// XXXX_XXXX, each X is 8-bit	
+	// XXXX_XXXX, each X is a 8-bit byte, so multiply factor is 256	
+	//                     (2 hexadecimal)
 	while(i < n) {
 		ans += f * c[i];
 		f *= 256;
@@ -87,13 +76,14 @@ void read_Elf_header()
 	fprintf(elf, " Version:  %x\n", (unsigned int)char2num(elf64_hdr.e_version.b, 4));
 
 	// fprintf(elf," Entry point address:  %s\n", elf64_hdr.e_entry.b);
-	stradr = char2addr(elf64_hdr.e_entry.b, 8);
+	stradr = char2num(elf64_hdr.e_entry.b, 8);
+	entry = stradr;
 	fprintf(elf," Entry point address:  0x%lx\n", stradr);
 	// fprintf(elf," Start of program headers: %s\n", elf64_hdr.e_phoff.b);
-	padr = char2addr(elf64_hdr.e_phoff.b, 8);
+	padr = char2num(elf64_hdr.e_phoff.b, 8);
 	fprintf(elf," Start of program headers: 0x%lx\n", padr);
 	// fprintf(elf," Start of section headers: %s\n", elf64_hdr.e_shoff.b);
-	sadr = char2addr(elf64_hdr.e_shoff.b, 8);
+	sadr = char2num(elf64_hdr.e_shoff.b, 8);
 	fprintf(elf," Start of section headers: 0x%lx\n", sadr);
 
 	fprintf(elf," Flags:  %x\n", (unsigned int)char2num(elf64_hdr.e_flags.b, 4));
@@ -118,6 +108,7 @@ void read_elf_sections()
 	fseek(file, sadr, SEEK_SET);
 	unsigned int sec_name = 0;
 	unsigned long sec_addr = 0;
+	unsigned long sec_off = 0;
 	unsigned long sec_size = 0;
 	for(int c = 0; c < snum; c++)
 	{
@@ -128,9 +119,10 @@ void read_elf_sections()
 		fprintf(elf, " Name:  %x\n", sec_name);
 		fprintf(elf, " Type:  %x\n", (unsigned int)char2num(elf64_shdr.sh_type.b, 4));
 		fprintf(elf, " Flags:  %lx\n", char2num(elf64_shdr.sh_flags.b, 8));
-		sec_addr = char2addr(elf64_shdr.sh_addr.b, 8);
+		sec_addr = char2num(elf64_shdr.sh_addr.b, 8);
 		fprintf(elf, " Address:  0x%lx\n", sec_addr);
-		fprintf(elf, " Offest:  0x%lx\n", char2addr(elf64_shdr.sh_offset.b, 8));
+		sec_off = char2num(elf64_shdr.sh_offset.b, 8);
+		fprintf(elf, " Offest:  0x%lx\n", sec_off);
 		sec_size = char2num(elf64_shdr.sh_size.b, 8);
 		fprintf(elf, " Size:  %ld Bytes\n", sec_size);
 		fprintf(elf, " Link:  %x\n", (unsigned int)char2num(elf64_shdr.sh_link.b, 4));
@@ -139,8 +131,11 @@ void read_elf_sections()
 		fprintf(elf, " Entsize:  %lx\n", char2num(elf64_shdr.sh_entsize.b, 8));
  	
 		if(sec_name == 0x1b) { //.text
-			cadr = sec_addr;
+			vadr = sec_addr;
+			cadr = sec_off;
 			csize = sec_size;
+		} else if(sec_name == 0x21) { //.rodata
+			gp = sec_addr;
 		}
 	}
 }

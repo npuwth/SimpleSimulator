@@ -106,7 +106,7 @@ void read_Phdr();
 
 unsigned long cadr = 0;  //代码段在elf文件中的偏移地址
 unsigned long csize = 0; //代码段的长度
-unsigned int vadr = 0;   //代码段在内存中的虚拟地址
+unsigned long vadr = 0;   //代码段在内存中的虚拟地址
 unsigned long gp = 0;    //全局数据段在内存的地址
 unsigned int madr = 0;   //main函数在内存中地址
 unsigned int endPC = 0;  //程序结束时的PC

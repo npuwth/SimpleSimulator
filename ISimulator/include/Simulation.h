@@ -7,6 +7,7 @@
 
 // decode here
 #define OP_JAL 111   // 0x6f
+#define OP_JALR 103  // 0x67
 #define OP_R 51      // 0x33
 
 #define F3_ADD 0
@@ -38,18 +39,22 @@
 #define F3_SCALL 0
 #define F7_SCALL 0
 
+#define OP_AUIPC 23  // 0x17
+#define OP_LUI   55  // 0x37
+
 #define MAX 100000000
 
 typedef unsigned long REG;
 
-// Memory, 400_000_000 bytes
-unsigned int memory[MAX] = {0};
+// Memory, 400_000_000 bytes, 381MB
+unsigned int memory[MAX] = {0}; //address:     0000_0000 ~ 5F5E_1000
+                                //array index: 0000_0000 ~ 17D7_8400
 
 // Registers, 32*64-bit
 REG reg[32] = {0};
 
 // Program Counter
-int PC = 0;
+unsigned long PC = 0;
 
 // the current instruction
 unsigned int inst = 0;
@@ -69,24 +74,21 @@ void translate_inst();
 void execute_inst();
 
 // signed extend src
-int ext_signed(unsigned int src, int bit);
-
-int ext_signed(unsigned int src, int bit)
+unsigned long ext_signed(unsigned int src)
 {
-    return 0;
+    long mid = (long)((signed int)src);
+    return (unsigned long)mid;
 }
 
 // get specific bit (s - e)
-unsigned int getbit(int s, int e);
-
-unsigned int getbit(int s, int e)
+unsigned int getbit(unsigned int inst, int s, int e)
 {
 	unsigned int mask = 0;
-    unsigned int k = 1 << s;
-    for(int i = s; i <= e; i++) {
+    unsigned int k = 1 << (31 - e);
+    for(int i = s; i < e; i++) {
         mask += k;
-        k << 1;
+        k = k << 1;
     }
-    return (inst & mask) >> s;
-    //大端小端问题
+    // printf("mask: %d\n", mask);
+    return (inst & mask) >> (31 - e);
 }
