@@ -73,11 +73,23 @@ void load_memory();
 void translate_inst();
 void execute_inst();
 
-// signed extend src
-unsigned long ext_signed(unsigned int src)
+unsigned long ext_signed(unsigned int src, int x);
+unsigned int getbit(unsigned int inst, int s, int e);
+
+// signed extend src form x-bit to 64-bit
+unsigned long ext_signed(unsigned int src, int x)
 {
-    long mid = (long)((signed int)src);
-    return (unsigned long)mid;
+    unsigned long mask = 0;
+    if(getbit(src, 32 - x, 32 - x) == 0) {
+        ;
+    } else {
+        unsigned long k = 1 << x;
+        for(int i = x; i < 64; i++) {
+            mask += k;
+            k = k << 1;
+        }
+    }
+    return mask | src;
 }
 
 // get specific bit (s - e)
@@ -85,10 +97,29 @@ unsigned int getbit(unsigned int inst, int s, int e)
 {
 	unsigned int mask = 0;
     unsigned int k = 1 << (31 - e);
-    for(int i = s; i < e; i++) {
+    for(int i = s; i <= e; i++) {
         mask += k;
         k = k << 1;
     }
     // printf("mask: %d\n", mask);
     return (inst & mask) >> (31 - e);
+}
+
+unsigned int setbit(unsigned int target, unsigned int reg, int s, int e) {
+    unsigned int mask = 0;
+    unsigned int data = 0;
+    if(e - s == 7) {
+        data = getbit(reg, 24, 31);
+    } else {
+        data = getbit(reg, 16, 31);
+    }
+    data = data << (31 - e);
+    unsigned int k = 1 << (31 - e);
+    for(int i = s; i <= e; i++) {
+        mask += k;
+        k = k << 1;
+    }
+    mask = mask ^ 0;
+    target = target & mask;
+    return target | data;
 }
