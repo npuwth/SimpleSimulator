@@ -52,7 +52,7 @@ void read_elf()
 	// fprintf(elf,"\n\nSymbol table:\n");
 	// read_symtable();
 
-	printf("Successfully read elf.\n");
+	// printf("Successfully read elf.\n");
 	fclose(elf);
 }
 

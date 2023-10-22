@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
     } else {
         printf("Successfully reading from %s.\n", argv[1]);
     }
-    mlog = fopen("mlog.txt", "w");
+    mlog = fopen("mlog.txt", "w"); //memory log
 
 	read_elf(); //解析elf文件
 	load_memory(); //加载内存
@@ -49,18 +49,53 @@ int main(int argc, char* argv[])
 	reg[2] = MAX / 2;  //栈基址sp寄存器
 	int end = (int)endPC / 4 - 1;
 
-	while(PC != end)
-	{
-	    translate_inst();
-        execute_inst();
-        if(exit_flag == 1) {
-            printf("OP: %d, fuc3: %d\n", OP, fuc3);
-            break;
+    char cmd, t;
+    int quit_flag = 0;
+    printf("ISimulator Shell:\n");
+    while(1) {
+        if(quit_flag == 1) break;
+        printf("> ");
+        scanf("%c%c", &cmd, &t);
+        switch(cmd) {
+            case 'q': { //退出
+                quit_flag = 1;
+                break;
+            }
+            case 'r': { //查看寄存器
+                print_regs();
+                break;
+            }
+            case 'i': { //单步执行
+                translate_inst();
+                execute_inst();
+                reg[0] = 0;
+                break;
+            }
+            case 'm': {
+                unsigned long addr;
+                printf("Please enter an address.\n> ");
+                scanf("%ld%c", &addr, &t);
+                printf("Memory at %016lx: %08x\n", addr, memory[addr >> 2]);
+                break;
+            }
+            case 'a': { //直接执行至结束
+                while(PC != end) {
+	                translate_inst();
+                    execute_inst();
+                    if(exit_flag == 1) {
+                        // printf("OP: %d, fuc3: %d\n", OP, fuc3);
+                       break;
+                    }
+                    reg[0] = 0;
+	            }
+                printf("Instruct Num: %ld\n", inst_num);
+                break;
+            }
+            default: {
+                printf("No such command: %c\n", cmd);
+            }
         }
-        reg[0] = 0;//一直为零
-	}
-    printf("Instruct Num: %ld\n", inst_num);
-    print_regs();
+    }
     fclose(mlog);
 	return 0;
 }

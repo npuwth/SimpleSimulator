@@ -69,6 +69,7 @@ unsigned int imm20 = 0;
 unsigned int imm7 = 0;
 unsigned int imm5 = 0;
 
+void print_regs();
 void load_memory();
 void translate_inst();
 void execute_inst();
