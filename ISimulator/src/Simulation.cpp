@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
 
 	read_elf(); //解析elf文件
 	load_memory(); //加载内存
+    entry = 0x10184; //main函数起始地址
 	PC = entry >> 2;   //PC以4个字节对齐, 指令长度4字节
 	reg[3] = gp;       //设置全局数据段地址寄存器
 	reg[2] = MAX / 2;  //栈基址sp寄存器
@@ -526,9 +527,12 @@ void execute_inst()
         }
         case OP_SCALL: {
             fuc7 = getbit(inst, 0, 6);
+            PC = PC + 1;
             if(fuc3 == 0 && fuc7 == 0) { //ecall
                 if(reg[10] == 1) {
                     printf("%ld", reg[11]);
+                } else if(reg[10] == 10) {
+                    exit_flag = 1;
                 }
             } else {
                 printf("Error: illegal instruction %08x.\n", inst);
