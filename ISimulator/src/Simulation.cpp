@@ -5,21 +5,23 @@ extern void read_elf();
 extern unsigned long cadr;
 extern unsigned long csize;
 extern unsigned long vadr;
+extern unsigned long dadr;
+extern unsigned long dsize;
 extern unsigned long gp;
 extern unsigned int madr;
-extern unsigned int endPC;
+// extern unsigned int endPC;
 extern unsigned long entry;
 extern FILE *file;
 FILE *mlog;
 
 
 long inst_num = 0; //运行指令数
-int exit_flag = 0; //退出指示
+int exit_flag = 0; //所有指令运行完成指示
 
-void print_regs() {
-    printf("Registers:\n");
+void print_regs() { //打印寄存器
+    printf("Registers(0 ~ 31):\n");
     for(int i = 0; i < 32; i++) {
-        printf("%02d: %016lx\n", i, reg[i]);
+        printf("reg%02d: %016lx\n", i, reg[i]);
     }
 }
 
@@ -39,16 +41,24 @@ int main(int argc, char* argv[])
     } else {
         printf("Successfully reading from %s.\n", argv[1]);
     }
-    mlog = fopen("mlog.txt", "w"); //memory log
+    mlog = fopen("mlog.txt", "w"); //内存访问踪迹
 
 	read_elf(); //解析elf文件
-	load_memory(); //加载内存
+	load_memory(); //加载代码数据至内存
     entry = 0x10184; //main函数起始地址
-	PC = entry >> 2;   //PC以4个字节对齐, 指令长度4字节
-	reg[3] = gp;       //设置全局数据段地址寄存器
-	reg[2] = MAX / 2;  //栈基址sp寄存器
-	int end = (int)endPC / 4 - 1;
+	PC = entry >> 2;  //PC以4个字节对齐，指令长度4字节
+	reg[3] = gp;      //设置全局数据段地址寄存器
+	reg[2] = MAX / 2; //设置栈基址sp寄存器
+	// int end = (int)endPC / 4 - 1;
 
+    cmd_shell();
+
+    fclose(mlog);
+    printf("Quit ISimulator successfully.\n");
+	return 0;
+}
+
+void cmd_shell() {
     char cmd, t;
     int quit_flag = 0;
     printf("ISimulator Shell:\n");
@@ -66,12 +76,16 @@ int main(int argc, char* argv[])
                 break;
             }
             case 'i': { //单步执行
+                if(exit_flag == 1) {
+                    printf("No more instructions\n");
+                    break;
+                }
                 translate_inst();
                 execute_inst();
                 reg[0] = 0;
                 break;
             }
-            case 'm': {
+            case 'm': { //查看指定内存
                 unsigned long addr;
                 printf("Please enter an address.\n> ");
                 scanf("%ld%c", &addr, &t);
@@ -79,7 +93,11 @@ int main(int argc, char* argv[])
                 break;
             }
             case 'a': { //直接执行至结束
-                while(PC != end) {
+                if(exit_flag == 1) {
+                    printf("No more instructions\n");
+                    break;
+                }
+                while(1) {
 	                translate_inst();
                     execute_inst();
                     if(exit_flag == 1) {
@@ -88,7 +106,17 @@ int main(int argc, char* argv[])
                     }
                     reg[0] = 0;
 	            }
-                printf("Instruct Num: %ld\n", inst_num);
+                printf("Instruction Num: %ld\n", inst_num);
+                break;
+            }
+            case 'h': { //打印帮助信息
+                printf("ISimulator V1.0\n");
+                printf("  q -- quit\n");
+                printf("  r -- print registers\n");
+                printf("  m -- print target memory\n");
+                printf("  i -- execute 1 instruction\n");
+                printf("  a -- execute all instructions\n");
+                printf("  h -- help information\n");
                 break;
             }
             default: {
@@ -96,31 +124,26 @@ int main(int argc, char* argv[])
             }
         }
     }
-    fclose(mlog);
-	return 0;
 }
 
 void translate_inst()
 {
-	inst = memory[PC]; //直接认为memory的CPU一样都是小端
-	//debug
+	inst = memory[PC]; //memory和CPU一样都是小端
     printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
+
     OP = getbit(inst, 25, 31);
 	rd = getbit(inst, 20, 24);
     fuc3 = getbit(inst, 17, 19);
-
-    // printf("OP: %d  rd: %d\n", OP, rd);
 	inst_num++;
-    // exit_flag = 1;
 }
 
-//加载代码段
-//初始化PC
 void load_memory()
 {
 	// vadr = 0x10000000;
     fseek(file, cadr, SEEK_SET);
-	fread(&memory[vadr >> 2], 1, csize, file); //memory以4 bytes对齐
+	fread(&memory[vadr >> 2], 1, csize, file); //memory以4字节对齐
+    fseek(file, dadr, SEEK_SET);
+    fread(&memory[gp >> 2], 1, dsize, file);
 	fclose(file);
     //debug
     // printf("Text in Memory: %016lx\n", vadr);
@@ -212,7 +235,7 @@ void execute_inst()
                 }
                 default: {
                     printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;    
+                    exit_flag = 1;
                 }
             }
             break;
@@ -249,7 +272,7 @@ void execute_inst()
                 }
                 default: {
                     printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;    
+                    exit_flag = 1;
                 }
             }
             break;
@@ -320,7 +343,7 @@ void execute_inst()
                 reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] + (signed long)ext_signed(imm12, 12)), 32);
             } else {
                 printf("Error: illegal instruction %08x.\n", inst);
-                exit_flag = 1;        
+                exit_flag = 1;
             }
             break;
         }
@@ -386,7 +409,7 @@ void execute_inst()
                 }
                 default: {
                     printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;    
+                    exit_flag = 1;
                 }
             }
             PC = PC + 1;
@@ -458,7 +481,7 @@ void execute_inst()
                 }
                 default: {
                     printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;  
+                    exit_flag = 1;
                 }
             }
             PC = PC + 1;
@@ -524,7 +547,7 @@ void execute_inst()
                 }
                 default: {
                     printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1; 
+                    exit_flag = 1;
                 }
             }
             break;
@@ -571,13 +594,13 @@ void execute_inst()
                 }
             } else {
                 printf("Error: illegal instruction %08x.\n", inst);
-                exit_flag = 1; 
+                exit_flag = 1;
             }
             break;
         }
         default: {
             printf("Error: illegal instruction %08x.\n", inst);
-            exit_flag = 1; 
+            exit_flag = 1;
         }
     }
     // if(OP==OP_SCALL)//系统调用指令
@@ -591,25 +614,8 @@ void execute_inst()
 	// 			reg[10]=write((unsigned int)reg[10],t,(unsigned int)reg[12]);
 	// 		}
 	// 		else if(reg[17]==63)//scanf
-	// 		{
-
-	// 		}
 	// 		else if(reg[17]==169)//time
-	// 		{
-
-	// 		}
 	// 		else if(reg[17]==93)//exit
-	// 		{
-	// 			exit_flag=1;
-	// 		}
-	// 		else
-	// 		{
-
-	// 		}
-    //     }
-    //     else
-    //     {
-			
     //     }
     // }
 }

@@ -136,6 +136,8 @@ void read_elf_sections()
 			csize = sec_size;
 		} else if(sec_name == 0x21) { //.rodata
 			gp = sec_addr;
+			dadr = sec_off;
+			dsize = sec_size;
 		}
 	}
 }

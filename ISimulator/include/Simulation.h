@@ -70,6 +70,7 @@ unsigned int imm7 = 0;
 unsigned int imm5 = 0;
 
 void print_regs();
+void cmd_shell();
 void load_memory();
 void translate_inst();
 void execute_inst();
