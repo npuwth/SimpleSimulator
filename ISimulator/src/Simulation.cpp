@@ -13,6 +13,7 @@ extern unsigned int madr;
 extern unsigned long entry;
 extern FILE *file;
 FILE *mlog;
+FILE *ilog;
 
 
 long inst_num = 0; //运行指令数
@@ -42,10 +43,14 @@ int main(int argc, char* argv[])
         printf("Successfully reading from %s.\n", argv[1]);
     }
     mlog = fopen("mlog.txt", "w"); //内存访问踪迹
+    ilog = fopen("ilog.txt", "w"); //指令运行踪迹
 
 	read_elf(); //解析elf文件
 	load_memory(); //加载代码数据至内存
-    entry = 0x10184; //main函数起始地址
+    // entry = 0x10184; //main函数起始地址
+    // entry = 0x10244; //ackermann
+    // entry = 0x102c4; //gemm
+    entry = 0x1032c; //quicksort
 	PC = entry >> 2;  //PC以4个字节对齐，指令长度4字节
 	reg[3] = gp;      //设置全局数据段地址寄存器
 	reg[2] = MAX / 2; //设置栈基址sp寄存器
@@ -54,6 +59,7 @@ int main(int argc, char* argv[])
     cmd_shell();
 
     fclose(mlog);
+    fclose(ilog);
     printf("Quit ISimulator successfully.\n");
 	return 0;
 }
@@ -81,8 +87,29 @@ void cmd_shell() {
                     break;
                 }
                 translate_inst();
+                printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
                 execute_inst();
                 reg[0] = 0;
+                break;
+            }
+            case 'n': { //跑多少条指令
+                if(exit_flag == 1) {
+                    printf("No more instructions\n");
+                    break;
+                }
+                unsigned long ii_num = 0, k = 0;
+                printf("Please enter a num.\n> ");
+                scanf("%ld%c", &ii_num, &t);
+                while(k < ii_num) {
+	                translate_inst();
+                    execute_inst();
+                    if(exit_flag == 1) {
+                        // printf("OP: %d, fuc3: %d\n", OP, fuc3);
+                       break;
+                    }
+                    reg[0] = 0;
+                    k++;
+	            }
                 break;
             }
             case 'm': { //查看指定内存
@@ -115,6 +142,7 @@ void cmd_shell() {
                 printf("  r -- print registers\n");
                 printf("  m -- print target memory\n");
                 printf("  i -- execute 1 instruction\n");
+                printf("  n -- execute n instructions\n");
                 printf("  a -- execute all instructions\n");
                 printf("  h -- help information\n");
                 break;
@@ -129,7 +157,8 @@ void cmd_shell() {
 void translate_inst()
 {
 	inst = memory[PC]; //memory和CPU一样都是小端
-    printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
+    // printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
+    fprintf(ilog, "PC: %016lx  Inst: %08x\n", PC << 2, inst);
 
     OP = getbit(inst, 25, 31);
 	rd = getbit(inst, 20, 24);
@@ -666,8 +695,8 @@ void execute_inst()
             switch(fuc3) {
                 case 0x0: {
                     if(imm12 == 0x0) { //ecall
-                        if(reg[10] == 1) {
-                            printf("%ld", reg[11]);
+                        if(reg[10] == 1) { //以数字输出
+                            printf("%ld\n", reg[11]);
                         } else if(reg[10] == 10) {
                             exit_flag = 1;
                         }

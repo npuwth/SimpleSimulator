@@ -130,11 +130,11 @@ void read_elf_sections()
 		fprintf(elf, " Align:  %lx\n", char2num(elf64_shdr.sh_addralign.b, 8));
 		fprintf(elf, " Entsize:  %lx\n", char2num(elf64_shdr.sh_entsize.b, 8));
  	
-		if(sec_name == 0x1b) { //.text
+		if(sec_name == 0x1b) { //.text，其实是要根据节头字符串表判断
 			vadr = sec_addr;
 			cadr = sec_off;
 			csize = sec_size;
-		} else if(sec_name == 0x21) { //.rodata
+		} else if(sec_name == 0x43) { //.data
 			gp = sec_addr;
 			dadr = sec_off;
 			dsize = sec_size;
