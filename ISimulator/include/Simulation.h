@@ -41,6 +41,7 @@
 
 #define OP_AUIPC 23  // 0x17
 #define OP_LUI   55  // 0x37
+#define OP_FENCE 15  // 0x0f
 
 #define MAX 100000000
 

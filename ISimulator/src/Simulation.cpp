@@ -174,7 +174,7 @@ void execute_inst()
                     break;
                 }
                 case 0x001: { //sll
-                    reg[rd] = reg[rs1] << (signed long)reg[rs2];
+                    reg[rd] = reg[rs1] << (reg[rs2] & 0b111111);
                     break;
                 }
                 case 0x011: { //mulh
@@ -210,11 +210,11 @@ void execute_inst()
                     break;
                 }
                 case 0x005: { //srl
-                    reg[rd] = reg[rs1] >> (signed long)reg[rs2];
+                    reg[rd] = reg[rs1] >> (reg[rs2] & 0b111111);
                     break;
                 }
                 case 0x205: { //sra
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] >> (signed long)reg[rs2]);
+                    reg[rd] = (unsigned long)((signed long)reg[rs1] >> (reg[rs2] & 0b111111));
                     break;
                 }
                 case 0x006: { //or
@@ -247,27 +247,39 @@ void execute_inst()
             PC = PC + 1;
             switch(fuc7 * 16 + fuc3) {
                 case 0x000: { //addw
-                    reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] + (signed long)reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] + (signed int)reg[rs2]), 32);
                     break;
                 }
                 case 0x200: { //subw
-                    reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] - (signed long)reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] - (signed int)reg[rs2]), 32);
+                    break;
+                }
+                case 0x001: { //sllw
+                    reg[rd] = ext_signed((unsigned int)(reg[rs1] << (reg[rs2] & 0b11111)), 32);
+                    break;
+                }
+                case 0x005: { //srlw
+                    reg[rd] = ext_signed((unsigned int)(reg[rs1] >> (reg[rs2] & 0b11111)), 32);
+                    break;
+                }
+                case 0x205: { //sraw
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] >> (reg[rs2] & 0b11111)), 32);
                     break;
                 }
                 case 0x010: { //mulw
-                    reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] * (signed long)reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] * (signed int)reg[rs2]), 32);
                     break;
                 }
                 case 0x014: { //divw
-                    reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] / (signed long)reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] / (signed int)reg[rs2]), 32);
                     break;
                 }
                 case 0x016: { //remw
-                    reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] % (signed long)reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] % (signed int)reg[rs2]), 32);
                     break;
                 }
                 case 0x017: { //remuw
-                    reg[rd] = ext_signed((unsigned int)(reg[rs1] % reg[rs2]), 32);
+                    reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] % (unsigned int)reg[rs2]), 32);
                     break;
                 }
                 default: {
@@ -290,7 +302,7 @@ void execute_inst()
                 }
                 case 0x1: {
                     if(fuc7 == 0x00) { //slli
-                        reg[rd] = reg[rs1] << (signed long)ext_signed(imm5, 6);
+                        reg[rd] = reg[rs1] << imm5;
                     } else {
                         printf("Error: illegal instruction %08x.\n", inst);
                         exit_flag = 1;
@@ -311,9 +323,10 @@ void execute_inst()
                 }
                 case 0x5: {
                     if(fuc7 == 0x00) { //srli
-                        reg[rd] = reg[rs1] >> (signed long)ext_signed(imm5, 6);
+                        reg[rd] = reg[rs1] >> imm5;
                     } else if(fuc7 == 0x10) { //srai
-                        reg[rd] = (unsigned long)((signed long)reg[rs1] >> (signed long)ext_signed(imm5, 6));
+                        // reg[rd] = (unsigned long)((signed long)reg[rs1] >> (signed long)ext_signed(imm5, 6));
+                        reg[rd] = (unsigned long)((signed long)reg[rs1] >> imm5);
                     } else {
                         printf("Error: illegal instruction %08x.\n", inst);
                         exit_flag = 1;
@@ -338,12 +351,33 @@ void execute_inst()
         case OP_IW: {
             rs1 = getbit(inst, 12, 16);
             imm12 = getbit(inst, 0, 11);
+            imm5 = getbit(inst, 7, 11);
+            fuc7 = getbit(inst, 0, 6);
             PC = PC + 1;
-            if(fuc3 == 0x0) { //addiw
-                reg[rd] = ext_signed((unsigned int)((signed long)reg[rs1] + (signed long)ext_signed(imm12, 12)), 32);
-            } else {
-                printf("Error: illegal instruction %08x.\n", inst);
-                exit_flag = 1;
+            switch(fuc3) {
+                case 0x0: { //addiw
+                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] + (signed int)ext_signed(imm12, 12)), 32);
+                    break;
+                }
+                case 0x1: { //slliw
+                    reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] << imm5), 32);
+                    break;
+                }
+                case 0x5: {
+                    if(fuc7 == 0x00) { //srliw
+                        reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] >> imm5), 32);
+                    } else if(fuc7 == 0x20) { //sraiw
+                        reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] >> imm5), 32);
+                    } else {
+                        printf("Error: illegal instruction %08x.\n", inst);
+                        exit_flag = 1;
+                    }
+                    break;
+                }
+                default: {
+                    printf("Error: illegal instruction %08x.\n", inst);
+                    exit_flag = 1;
+                }
             }
             break;
         }
@@ -389,7 +423,7 @@ void execute_inst()
                         printf("Error: Wrong memory access.\n");
                         exit_flag = 1;
                     }
-                    data = (unsigned long)data1;
+                    data = ext_signed(data1, 32);
                     reg[rd] = data;
                     fprintf(mlog, "PC: %016lx ", PC << 2);
                     fprintf(mlog, "lw from %016lx to reg%02d: %016lx\n", addr, rd, data);
@@ -405,6 +439,47 @@ void execute_inst()
                     reg[rd] = data;
                     fprintf(mlog, "PC: %016lx ", PC << 2);
                     fprintf(mlog, "ld from %016lx to reg%02d: %016lx\n", addr, rd, data);
+                    break;
+                }
+                case 0x4: { //lbu
+                    if(addr % 4 == 0) {
+                        data = (unsigned long)getbit(data1, 24, 31);
+                    } else if(addr % 4 == 1) {
+                        data = (unsigned long)getbit(data1, 16, 23);
+                    } else if(addr % 4 == 2) {
+                        data = (unsigned long)getbit(data1, 8, 15);
+                    } else {
+                        data = (unsigned long)getbit(data1, 0, 7);
+                    }
+                    reg[rd] = data;
+                    fprintf(mlog, "PC: %016lx ", PC << 2);
+                    fprintf(mlog, "lbu from %016lx to reg%02d: %016lx\n", addr, rd, data);
+                    break;
+                }
+                case 0x5: { //lhu
+                    if(addr % 2 != 0) {
+                        printf("Error: Wrong memory access.\n");
+                        exit_flag = 1;
+                    }
+                    if(addr % 4 == 0) {
+                        data = (unsigned long)getbit(data1, 16, 31);
+                    } else {
+                        data = (unsigned long)getbit(data1, 0, 15);
+                    }
+                    reg[rd] = data;
+                    fprintf(mlog, "PC: %016lx ", PC << 2);
+                    fprintf(mlog, "lhu from %016lx to reg%02d: %016lx\n", addr, rd, data);
+                    break;
+                }
+                case 0x6: { //lwu
+                    if(addr % 4 != 0) {
+                        printf("Error: Wrong memory access.\n");
+                        exit_flag = 1;
+                    }
+                    data = (unsigned long)data1;
+                    reg[rd] = data;
+                    fprintf(mlog, "PC: %016lx ", PC << 2);
+                    fprintf(mlog, "lwu from %016lx to reg%02d: %016lx\n", addr, rd, data);
                     break;
                 }
                 default: {
@@ -473,9 +548,10 @@ void execute_inst()
                     data = (unsigned int)(reg[rs2] >> 32);
                     memory[(addr >> 2) + 1] = data;
                     fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sd from reg%02d to %016lx: %08x\n", rs2, addr, data);
+                    fprintf(mlog, "sd from reg%02d to %016lx: %08x\n", rs2, addr + 4, data);
                     data = (unsigned int)reg[rs2];
                     memory[addr >> 2] = data;
+                    fprintf(mlog, "PC: %016lx ", PC << 2);
                     fprintf(mlog, "sd from reg%02d to %016lx: %08x\n", rs2, addr, data);
                     break;
                 }
@@ -584,17 +660,53 @@ void execute_inst()
             break;
         }
         case OP_SCALL: {
-            fuc7 = getbit(inst, 0, 6);
+            imm12 = getbit(inst, 0, 11);
+            // fuc7 = getbit(inst, 0, 6);
             PC = PC + 1;
-            if(fuc3 == 0 && fuc7 == 0) { //ecall
-                if(reg[10] == 1) {
-                    printf("%ld", reg[11]);
-                } else if(reg[10] == 10) {
+            switch(fuc3) {
+                case 0x0: {
+                    if(imm12 == 0x0) { //ecall
+                        if(reg[10] == 1) {
+                            printf("%ld", reg[11]);
+                        } else if(reg[10] == 10) {
+                            exit_flag = 1;
+                        }
+                    } else if(imm12 == 0x1) { //ebreak
+                        printf("Ebreak Called.\n");
+                    } else {
+                        printf("Error: illegal instruction %08x.\n", inst);
+                        exit_flag = 1;
+                    }
+                    break;
+                }
+                case 0x1: { //CSRRW
+                    printf("CSRRW Called.\n");
+                    break;
+                }
+                case 0x2: { //CSRRS
+                    printf("CSRRS Called.\n");
+                    break;
+                }
+                case 0x3: { //CSRRC
+                    printf("CSRRC Called.\n");
+                    break;
+                }
+                case 0x5: { //CSRRWI
+                    printf("CSRRWI Called.\n");
+                    break;
+                }
+                case 0x6: { //CSRRSI
+                    printf("CSRRSI Called.\n");
+                    break;
+                }
+                case 0x7: { //CSRRCI
+                    printf("CSRRCI Called.\n");
+                    break;
+                }
+                default: {
+                    printf("Error: illegal instruction %08x.\n", inst);
                     exit_flag = 1;
                 }
-            } else {
-                printf("Error: illegal instruction %08x.\n", inst);
-                exit_flag = 1;
             }
             break;
         }
