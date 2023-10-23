@@ -86,26 +86,31 @@ unsigned long ext_signed(unsigned int src, int x)
     if(getbit(src, 32 - x, 32 - x) == 0) {
         ;
     } else {
-        unsigned long k = 1 << x;
+        // unsigned long k = 1 << x;
+        unsigned long k = 1;
+        k = k << x;
+        // if(src == 0xffffffff) printf("k: %016lx\n", k);
         for(int i = x; i < 64; i++) {
             mask += k;
             k = k << 1;
+            // if(src == 0xffffffff) printf("%d, %016lx\n",x, k);
         }
     }
-    return mask | src;
+    // if(src == 0xffffffff) printf("src:%08x, result:%016lx\n", src, (mask | (unsigned long)src));
+    return (mask | (unsigned long)src);
 }
 
 // get specific bit (s - e)
 unsigned int getbit(unsigned int inst, int s, int e)
 {
 	unsigned int mask = 0;
-    unsigned int k = 1 << (31 - e);
+    unsigned int k = (1 << (31 - e));
     for(int i = s; i <= e; i++) {
         mask += k;
-        k = k << 1;
+        k = (k << 1);
     }
     // printf("mask: %d\n", mask);
-    return (inst & mask) >> (31 - e);
+    return ((inst & mask) >> (31 - e));
 }
 
 unsigned int setbit(unsigned int target, unsigned int reg, int s, int e) {
@@ -116,13 +121,13 @@ unsigned int setbit(unsigned int target, unsigned int reg, int s, int e) {
     } else {
         data = getbit(reg, 16, 31);
     }
-    data = data << (31 - e);
-    unsigned int k = 1 << (31 - e);
+    data = (data << (31 - e));
+    unsigned int k = (1 << (31 - e));
     for(int i = s; i <= e; i++) {
         mask += k;
-        k = k << 1;
+        k = (k << 1);
     }
     mask = mask ^ 0;
     target = target & mask;
-    return target | data;
+    return (target | data);
 }

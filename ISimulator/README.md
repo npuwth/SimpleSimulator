@@ -1,6 +1,6 @@
 ISimulator: RISC-V Instruction Simulator
 
-Supported Instructions: RV64IM
+Supported Instruction Set: RV64IM
 
 Usage:
 - Compile: `mkdir build; make`

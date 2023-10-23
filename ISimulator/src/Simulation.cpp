@@ -159,6 +159,7 @@ void translate_inst()
 	inst = memory[PC]; //memory和CPU一样都是小端
     // printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
     fprintf(ilog, "PC: %016lx  Inst: %08x\n", PC << 2, inst);
+    fprintf(ilog, "Reg%02d: %016lx\n", rd, reg[rd]);
 
     OP = getbit(inst, 25, 31);
 	rd = getbit(inst, 20, 24);
@@ -454,6 +455,7 @@ void execute_inst()
                     }
                     data = ext_signed(data1, 32);
                     reg[rd] = data;
+                    // if(PC == ) printf("%");
                     fprintf(mlog, "PC: %016lx ", PC << 2);
                     fprintf(mlog, "lw from %016lx to reg%02d: %016lx\n", addr, rd, data);
                     break;

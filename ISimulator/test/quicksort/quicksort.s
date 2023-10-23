@@ -31,20 +31,20 @@ quick_sort:
 	lw	a5,-48(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	bge	a4,a5,.L7
+	bge	a4,a5,.L7 // 
 	lw	a5,-44(s0)
-	addiw	a5,a5,-1
+	addiw	a5,a5,-1 // i = l-1
 	sw	a5,-20(s0)
 	lw	a5,-48(s0)
-	addiw	a5,a5,1
+	addiw	a5,a5,1  // j = r+1
 	sw	a5,-24(s0)
 	lw	a4,-44(s0)
 	lw	a5,-48(s0)
-	addw	a5,a4,a5
+	addw	a5,a4,a5 // i+j
 	sext.w	a5,a5
-	sraiw	a5,a5,1
+	sraiw	a5,a5,1  // >> 1
 	sext.w	a5,a5
-	slli	a5,a5,2
+	slli	a5,a5,2  //计算数组地址
 	ld	a4,-40(s0)
 	add	a5,a4,a5
 	lw	a5,0(a5)
@@ -52,7 +52,7 @@ quick_sort:
 	j	.L4
 .L5:
 	lw	a5,-20(s0)
-	addiw	a5,a5,1
+	addiw	a5,a5,1  // i+1
 	sw	a5,-20(s0)
 	lw	a5,-20(s0)
 	slli	a5,a5,2
@@ -61,10 +61,10 @@ quick_sort:
 	lw	a4,0(a5)
 	lw	a5,-28(s0)
 	sext.w	a5,a5
-	bgt	a5,a4,.L5
+	bgt	a5,a4,.L5    //do-while
 .L6:
 	lw	a5,-24(s0)
-	addiw	a5,a5,-1
+	addiw	a5,a5,-1 // j-1
 	sw	a5,-24(s0)
 	lw	a5,-24(s0)
 	slli	a5,a5,2
@@ -73,12 +73,12 @@ quick_sort:
 	lw	a4,0(a5)
 	lw	a5,-28(s0)
 	sext.w	a5,a5
-	blt	a5,a4,.L6
+	blt	a5,a4,.L6    //do-while
 	lw	a4,-20(s0)
 	lw	a5,-24(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	bge	a4,a5,.L4
+	bge	a4,a5,.L4    //
 	lw	a5,-20(s0)
 	slli	a5,a5,2
 	ld	a4,-40(s0)
@@ -106,7 +106,7 @@ quick_sort:
 	lw	a5,-24(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	blt	a4,a5,.L5
+	blt	a4,a5,.L5 //
 	lw	a4,-24(s0)
 	lw	a5,-44(s0)
 	mv	a2,a4
