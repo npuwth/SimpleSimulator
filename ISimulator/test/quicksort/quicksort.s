@@ -5,13 +5,21 @@
 	.attribute stack_align, 16
 	.text
 	.globl	a
-	.section	.sdata,"aw"
+	.data
 	.align	3
 	.type	a, @object
-	.size	a, 8
+	.size	a, 40
 a:
 	.word	1
 	.word	3
+	.word	7
+	.word	5
+	.word	9
+	.word	6
+	.word	4
+	.word	2
+	.word	0
+	.word	8
 	.text
 	.align	2
 	.globl	quick_sort
@@ -31,20 +39,20 @@ quick_sort:
 	lw	a5,-48(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	bge	a4,a5,.L7 // 
+	bge	a4,a5,.L7
 	lw	a5,-44(s0)
-	addiw	a5,a5,-1 // i = l-1
+	addiw	a5,a5,-1
 	sw	a5,-20(s0)
 	lw	a5,-48(s0)
-	addiw	a5,a5,1  // j = r+1
+	addiw	a5,a5,1
 	sw	a5,-24(s0)
 	lw	a4,-44(s0)
 	lw	a5,-48(s0)
-	addw	a5,a4,a5 // i+j
+	addw	a5,a4,a5
 	sext.w	a5,a5
-	sraiw	a5,a5,1  // >> 1
+	sraiw	a5,a5,1
 	sext.w	a5,a5
-	slli	a5,a5,2  //计算数组地址
+	slli	a5,a5,2
 	ld	a4,-40(s0)
 	add	a5,a4,a5
 	lw	a5,0(a5)
@@ -52,7 +60,7 @@ quick_sort:
 	j	.L4
 .L5:
 	lw	a5,-20(s0)
-	addiw	a5,a5,1  // i+1
+	addiw	a5,a5,1
 	sw	a5,-20(s0)
 	lw	a5,-20(s0)
 	slli	a5,a5,2
@@ -61,10 +69,10 @@ quick_sort:
 	lw	a4,0(a5)
 	lw	a5,-28(s0)
 	sext.w	a5,a5
-	bgt	a5,a4,.L5    //do-while
+	bgt	a5,a4,.L5
 .L6:
 	lw	a5,-24(s0)
-	addiw	a5,a5,-1 // j-1
+	addiw	a5,a5,-1
 	sw	a5,-24(s0)
 	lw	a5,-24(s0)
 	slli	a5,a5,2
@@ -73,12 +81,12 @@ quick_sort:
 	lw	a4,0(a5)
 	lw	a5,-28(s0)
 	sext.w	a5,a5
-	blt	a5,a4,.L6    //do-while
+	blt	a5,a4,.L6
 	lw	a4,-20(s0)
 	lw	a5,-24(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	bge	a4,a5,.L4    //
+	bge	a4,a5,.L4
 	lw	a5,-20(s0)
 	slli	a5,a5,2
 	ld	a4,-40(s0)
@@ -106,7 +114,7 @@ quick_sort:
 	lw	a5,-24(s0)
 	sext.w	a4,a4
 	sext.w	a5,a5
-	blt	a4,a5,.L5 //
+	blt	a4,a5,.L5
 	lw	a4,-24(s0)
 	lw	a5,-44(s0)
 	mv	a2,a4
@@ -138,7 +146,7 @@ main:
 	sd	ra,24(sp)
 	sd	s0,16(sp)
 	addi	s0,sp,32
-	li	a2,1
+	li	a2,9
 	li	a1,0
 	lui	a5,%hi(a)
 	addi	a0,a5,%lo(a)
@@ -147,19 +155,19 @@ main:
 	j	.L9
 .L10:
 	lui	a5,%hi(a)
-	lw	a4,-20(s0)
-	slli	a4,a4,2
-	addi	a5,a5,%lo(a)
+	addi	a4,a5,%lo(a)
+	lw	a5,-20(s0)
+	slli	a5,a5,2
 	add	a5,a4,a5
 	lw	a5,0(a5)
  #APP
-# 34 "quicksort/quicksort.c" 1
+# 38 "quicksort/quicksort.c" 1
 	.insn r 0x33, 0, 0, a1, zero, a5
 # 0 "" 2
-# 34 "quicksort/quicksort.c" 1
+# 38 "quicksort/quicksort.c" 1
 	.insn i 0x13, 0, a0, zero, 1
 # 0 "" 2
-# 34 "quicksort/quicksort.c" 1
+# 38 "quicksort/quicksort.c" 1
 	ecall
 # 0 "" 2
  #NO_APP
@@ -169,13 +177,13 @@ main:
 .L9:
 	lw	a5,-20(s0)
 	sext.w	a4,a5
-	li	a5,1
+	li	a5,9
 	ble	a4,a5,.L10
  #APP
-# 36 "quicksort/quicksort.c" 1
+# 40 "quicksort/quicksort.c" 1
 	.insn i 0x13, 0, a0, zero, 10
 # 0 "" 2
-# 36 "quicksort/quicksort.c" 1
+# 40 "quicksort/quicksort.c" 1
 	ecall
 # 0 "" 2
  #NO_APP

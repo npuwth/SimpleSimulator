@@ -69,6 +69,7 @@ void cmd_shell() {
     int quit_flag = 0;
     printf("ISimulator Shell:\n");
     while(1) {
+        fflush(NULL);
         if(quit_flag == 1) break;
         printf("> ");
         scanf("%c%c", &cmd, &t);

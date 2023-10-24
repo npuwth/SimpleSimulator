@@ -3,10 +3,10 @@
 #define PRINT(x) asm volatile(".insn r 0x33, 0, 0, a1, zero, %0"::"r"(x):"a1"); asm volatile(".insn i 0x13, 0, a0, zero, 1":::"a0"); asm volatile("ecall");
 #define EXIT()   asm volatile(".insn i 0x13, 0, a0, zero, 10":::"a0"); asm volatile("ecall");
 
-#define MAXNUM 2
+#define MAXNUM 10
 
-// int a[MAXNUM] = {1, 3, 7, 5, 9, 6, 4, 2, 0, 8};
-int a[MAXNUM] = {1, 3};
+int a[MAXNUM] = {1, 3, 7, 5, 9, 6, 4, 2, 0, 8};
+// int a[MAXNUM] = {1, 3};
 
 void quick_sort(int q[], int l, int r) {
 	if(l >= r) return;
@@ -26,6 +26,10 @@ void quick_sort(int q[], int l, int r) {
 int main() {
 	// for(int i = 0; i < MAXNUM; i++) {
 	// 	scanf("%d", &a[i]);
+	// }
+
+	// for(int i = 0; i < MAXNUM; i++) {
+	// 	PRINT(a[i]);
 	// }
 
 	quick_sort(a, 0, MAXNUM-1);
