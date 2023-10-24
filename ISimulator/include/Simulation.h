@@ -87,7 +87,7 @@ unsigned long ext_signed(unsigned int src, int x)
         ;
     } else {
         // unsigned long k = 1 << x;
-        unsigned long k = 1;
+        unsigned long k = 1UL;
         k = k << x;
         // if(src == 0xffffffff) printf("k: %016lx\n", k);
         for(int i = x; i < 64; i++) {
@@ -104,7 +104,7 @@ unsigned long ext_signed(unsigned int src, int x)
 unsigned int getbit(unsigned int inst, int s, int e)
 {
 	unsigned int mask = 0;
-    unsigned int k = (1 << (31 - e));
+    unsigned int k = (1U << (31 - e));
     for(int i = s; i <= e; i++) {
         mask += k;
         k = (k << 1);
@@ -122,7 +122,7 @@ unsigned int setbit(unsigned int target, unsigned int reg, int s, int e) {
         data = getbit(reg, 16, 31);
     }
     data = (data << (31 - e));
-    unsigned int k = (1 << (31 - e));
+    unsigned int k = (1U << (31 - e));
     for(int i = s; i <= e; i++) {
         mask += k;
         k = (k << 1);

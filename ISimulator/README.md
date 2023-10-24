@@ -20,3 +20,6 @@ Warn:
 1. Change main entry in Simulation.cpp according to ELF file! (Use objdump to see where main function starts)
 
 2. Need RISC-V toolchain to compile testcases (eg. hello.elf).
+
+Env:
+Ubuntu 20.04, GCC 9.3.0
