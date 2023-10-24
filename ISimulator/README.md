@@ -1,4 +1,4 @@
-ISimulator: RISC-V Instruction Simulator
+## ISimulator: RISC-V Instruction Simulator
 
 Supported Instruction Set: RV64IM
 
@@ -8,7 +8,7 @@ Usage:
 - Parameters: type `h` in commandline
 
 ISimulator V1.0
-  q -- quit
+  q -- quit simulator
   r -- print registers
   m -- print target memory
   i -- execute 1 instruction
@@ -16,5 +16,7 @@ ISimulator V1.0
   a -- execute all instructions
   h -- help information
 
-Warn: Need to change main entry in Simulation.cpp according to ELF file!
-(Use objdump to see where main function starts)
+Warn: 
+1. Change main entry in Simulation.cpp according to ELF file! (Use objdump to see where main function starts)
+
+2. Need RISC-V toolchain to compile testcases (eg. hello.elf).
