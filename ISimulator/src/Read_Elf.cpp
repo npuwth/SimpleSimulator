@@ -130,7 +130,7 @@ void read_elf_sections()
 		fprintf(elf, " Align:  %lx\n", char2num(elf64_shdr.sh_addralign.b, 8));
 		fprintf(elf, " Entsize:  %lx\n", char2num(elf64_shdr.sh_entsize.b, 8));
  	
-		if(sec_name == 0x1b) { //.text，其实是要根据节头字符串表判断
+		if(sec_name == 0x1b) { //.text，其实是要根据节头字符串表判断，elf64_hdr.e_shstrndx
 			vadr = sec_addr;
 			cadr = sec_off;
 			csize = sec_size;
