@@ -9,6 +9,7 @@
 
 #define MAX 100000000
 #define inst_trace 1
+// #define inst_trace_all 1
 #define mem_trace 1
 
 typedef unsigned long REG;

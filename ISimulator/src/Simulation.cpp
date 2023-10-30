@@ -45,9 +45,9 @@ int main(int argc, char* argv[])
 	read_elf(); //解析elf文件
 	load_memory(); //加载代码数据至内存
     // entry = 0x10184; //main函数起始地址
-    // entry = 0x10244; //ackermann
+    entry = 0x10244; //ackermann
     // entry = 0x102c4; //gemm
-    entry = 0x1032c; //quicksort
+    // entry = 0x1032c; //quicksort
 	PC = entry >> 2;  //PC以4个字节对齐，指令长度4字节
 	reg[3] = gp;      //设置全局数据段地址寄存器
 	reg[2] = MAX / 2; //设置栈基址sp寄存器
@@ -184,7 +184,7 @@ void simulate_inst() {
 
 void update_regs() {
     EX_flush = stall_EX_flush | mispre_EX_flush;
-    if(IF_stall) {
+    if(IF_stall & ~mispre) {
         ;
     } else {
         PC = NPC;
@@ -205,7 +205,7 @@ void update_regs() {
 void pipeline_IF() { //instruction fetch
     unsigned int inst = memory[PC]; //memory和CPU一样都是小端
 
-#ifdef inst_trace
+#ifdef inst_trace_all
     fprintf(ilog, "IFPC:  %016lx  Inst: %08x\n", PC << 2, inst);
 #endif
 
@@ -274,7 +274,7 @@ void pipeline_ID() { //instruction decode
         stall_EX_flush = 0;
     }
 
-#ifdef inst_trace
+#ifdef inst_trace_all
     fprintf(ilog, "IDPC:  %016lx  Inst: %08x\n", reg_IFID.PC << 2, reg_IFID.inst);
 #endif
 
@@ -303,6 +303,7 @@ void pipeline_EX() {
         reg_EXMEM_new = reg_zero;
         ID_flush = 0;
         mispre_EX_flush = 0;
+        mispre = 0;
         return;
     }
 
@@ -320,16 +321,19 @@ void pipeline_EX() {
     );
 
     if(branch_taken) {
+        fprintf(ilog, "branch: %016lx  NPC: %016lx\n", reg_IDEX.PC << 2, reg_IDEX.nextPC << 2);
         ID_flush = 1;
         mispre_EX_flush = 1;
+        mispre = 1;
         inst_num -= 2;
         NPC = reg_IDEX.nextPC;
     } else {
         ID_flush = 0;
         mispre_EX_flush = 0;
+        mispre = 0;
     }
 
-#ifdef inst_trace
+#ifdef inst_trace_all
     fprintf(ilog, "EXPC:  %016lx  Inst: %08x\n", reg_IDEX.PC << 2, reg_IDEX.inst);
 #endif
 
@@ -378,7 +382,7 @@ void pipeline_MEM() {
     }
     //syscall放到MEM级处理，前一条指令正好被写回
 
-#ifdef inst_trace
+#ifdef inst_trace_all
     fprintf(ilog, "MEMPC: %016lx  Inst: %08x\n", reg_EXMEM.PC << 2, reg_EXMEM.inst);
 #endif
 

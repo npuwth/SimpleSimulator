@@ -18,6 +18,7 @@ bool EX_flush; //清空reg_IDEX
 
 bool stall_EX_flush;
 bool mispre_EX_flush;
+bool mispre;
 
 void print_regs();
 void cmd_shell();
