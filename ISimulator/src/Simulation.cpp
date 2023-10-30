@@ -1,3 +1,4 @@
+#include "Common.h"
 #include "Simulation.h"
 using namespace std;
 
@@ -9,15 +10,11 @@ extern unsigned long dadr;
 extern unsigned long dsize;
 extern unsigned long gp;
 extern unsigned int madr;
-// extern unsigned int endPC;
 extern unsigned long entry;
 extern FILE *file;
-FILE *mlog;
-FILE *ilog;
-
-
-long inst_num = 0; //运行指令数
-int exit_flag = 0; //所有指令运行完成指示
+bool exit_flag = 0; //所有指令运行完成指示
+unsigned int memory[MAX] = {0};
+REG reg[32] = {0};
 
 void print_regs() { //打印寄存器
     printf("Registers(0 ~ 31):\n");
@@ -87,9 +84,10 @@ void cmd_shell() {
                     printf("No more instructions\n");
                     break;
                 }
-                translate_inst();
-                printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
-                execute_inst();
+                // translate_inst();
+                // printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
+                // execute_inst();
+                simulate_inst();
                 reg[0] = 0;
                 break;
             }
@@ -102,8 +100,9 @@ void cmd_shell() {
                 printf("Please enter a num.\n> ");
                 scanf("%ld%c", &ii_num, &t);
                 while(k < ii_num) {
-	                translate_inst();
-                    execute_inst();
+	                // translate_inst();
+                    // execute_inst();
+                    simulate_inst();
                     if(exit_flag == 1) {
                         // printf("OP: %d, fuc3: %d\n", OP, fuc3);
                        break;
@@ -126,8 +125,9 @@ void cmd_shell() {
                     break;
                 }
                 while(1) {
-	                translate_inst();
-                    execute_inst();
+	                // translate_inst();
+                    // execute_inst();
+                    simulate_inst();
                     if(exit_flag == 1) {
                         // printf("OP: %d, fuc3: %d\n", OP, fuc3);
                        break;
@@ -155,19 +155,6 @@ void cmd_shell() {
     }
 }
 
-void translate_inst()
-{
-	inst = memory[PC]; //memory和CPU一样都是小端
-    // printf("PC: %016lx  Inst: %08x\n", PC << 2, inst);
-    fprintf(ilog, "PC: %016lx  Inst: %08x\n", PC << 2, inst);
-    fprintf(ilog, "Reg%02d: %016lx\n", rd, reg[rd]);
-
-    OP = getbit(inst, 25, 31);
-	rd = getbit(inst, 20, 24);
-    fuc3 = getbit(inst, 17, 19);
-	inst_num++;
-}
-
 void load_memory()
 {
 	// vadr = 0x10000000;
@@ -183,594 +170,235 @@ void load_memory()
     // }
 }
 
-void execute_inst()
-{
-	switch(OP) {
-        case OP_R: {
-            rs1 = getbit(inst, 12, 16);
-            rs2 = getbit(inst, 7, 11);
-            fuc7 = getbit(inst, 0, 6);
-            PC = PC + 1;
-            switch(fuc7 * 16 + fuc3) { //这里的写法很细节！！！
-                case 0x000: { //add
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] + (signed long)reg[rs2]); //要先转成有符号的
-                    break;
-                }
-                case 0x010: { //mul
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] * (signed long)reg[rs2]); //直接不考虑溢出就行
-                    break;
-                }
-                case 0x200: { //sub
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] - (signed long)reg[rs2]);
-                    break;
-                }
-                case 0x001: { //sll
-                    reg[rd] = reg[rs1] << (reg[rs2] & 0b111111);
-                    break;
-                }
-                case 0x011: { //mulh
-                    reg[rd] = (unsigned long)(((signed long)reg[rs1] * (signed __int128)reg[rs2]) >> 64);
-                    break;
-                }
-                case 0x012: { //mulhsu
-                    reg[rd] = (unsigned long)(((signed long)reg[rs1] * (unsigned __int128)reg[rs2]) >> 64);
-                    break;
-                }
-                case 0x013: { //mulhu
-                    reg[rd] = (unsigned long)((reg[rs1] * (unsigned __int128)reg[rs2]) >> 64);
-                    break;
-                } 
-                case 0x002: { //slt
-                    reg[rd] = ((signed long)reg[rs1] < (signed long)reg[rs2]) ? 1 : 0;
-                    break;
-                }
-                case 0x003: { //sltu
-                    reg[rd] = (reg[rs1] < reg[rs2]) ? 1 : 0;
-                    break;
-                }
-                case 0x004: { //xor
-                    reg[rd] = reg[rs1] ^ reg[rs2];
-                    break;
-                }
-                case 0x014: { //div
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] / (signed long)reg[rs2]);
-                    break;
-                }
-                case 0x015: { //divu
-                    reg[rd] = reg[rs1] / reg[rs2];
-                    break;
-                }
-                case 0x005: { //srl
-                    reg[rd] = reg[rs1] >> (reg[rs2] & 0b111111);
-                    break;
-                }
-                case 0x205: { //sra
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] >> (reg[rs2] & 0b111111));
-                    break;
-                }
-                case 0x006: { //or
-                    reg[rd] = reg[rs1] | reg[rs2];
-                    break;
-                }
-                case 0x016: { //rem
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] % (signed long)reg[rs2]);
-                    break;
-                }
-                case 0x017: { //remu
-                    reg[rd] = reg[rs1] % reg[rs2];
-                    break;
-                }
-                case 0x007: { //and
-                    reg[rd] = reg[rs1] & reg[rs2];
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        case OP_RW: {
-            rs1 = getbit(inst, 12, 16);
-            rs2 = getbit(inst, 7, 11);
-            fuc7 = getbit(inst, 0, 6);
-            PC = PC + 1;
-            switch(fuc7 * 16 + fuc3) {
-                case 0x000: { //addw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] + (signed int)reg[rs2]), 32);
-                    break;
-                }
-                case 0x200: { //subw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] - (signed int)reg[rs2]), 32);
-                    break;
-                }
-                case 0x001: { //sllw
-                    reg[rd] = ext_signed((unsigned int)(reg[rs1] << (reg[rs2] & 0b11111)), 32);
-                    break;
-                }
-                case 0x005: { //srlw
-                    reg[rd] = ext_signed((unsigned int)(reg[rs1] >> (reg[rs2] & 0b11111)), 32);
-                    break;
-                }
-                case 0x205: { //sraw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] >> (reg[rs2] & 0b11111)), 32);
-                    break;
-                }
-                case 0x010: { //mulw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] * (signed int)reg[rs2]), 32);
-                    break;
-                }
-                case 0x014: { //divw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] / (signed int)reg[rs2]), 32);
-                    break;
-                }
-                case 0x016: { //remw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] % (signed int)reg[rs2]), 32);
-                    break;
-                }
-                case 0x017: { //remuw
-                    reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] % (unsigned int)reg[rs2]), 32);
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        case OP_I: {
-            rs1 = getbit(inst, 12, 16);
-            imm12 = getbit(inst, 0, 11);
-            imm5  = getbit(inst, 6, 11); //rv64下增加为6位
-            fuc7 = getbit(inst, 0, 5);   //fuc7就缩减为6位
-            PC = PC + 1;
-            switch(fuc3) {
-                case 0x0: { //addi
-                    reg[rd] = (unsigned long)((signed long)reg[rs1] + (signed long)ext_signed(imm12, 12));
-                    break;
-                }
-                case 0x1: {
-                    if(fuc7 == 0x00) { //slli
-                        reg[rd] = reg[rs1] << imm5;
-                    } else {
-                        printf("Error: illegal instruction %08x.\n", inst);
-                        exit_flag = 1;
-                    }
-                    break;
-                }
-                case 0x2: { //slti
-                    reg[rd] = ((signed long)reg[rs1] < (signed long)ext_signed(imm12, 12)) ? 1 : 0;
-                    break;
-                }
-                case 0x3: { //sltiu
-                    reg[rd] = (reg[rs1] < ext_signed(imm12, 12)) ? 1 : 0;
-                    break;
-                }
-                case 0x4: { //xori
-                    reg[rd] = reg[rs1] ^ ext_signed(imm12, 12);
-                    break;
-                }
-                case 0x5: {
-                    if(fuc7 == 0x00) { //srli
-                        reg[rd] = reg[rs1] >> imm5;
-                    } else if(fuc7 == 0x10) { //srai
-                        // reg[rd] = (unsigned long)((signed long)reg[rs1] >> (signed long)ext_signed(imm5, 6));
-                        reg[rd] = (unsigned long)((signed long)reg[rs1] >> imm5);
-                    } else {
-                        printf("Error: illegal instruction %08x.\n", inst);
-                        exit_flag = 1;
-                    }
-                    break;
-                }
-                case 0x6: { //ori
-                    reg[rd] = reg[rs1] | ext_signed(imm12, 12);
-                    break;
-                }
-                case 0x7: { //andi
-                    reg[rd] = reg[rs1] & ext_signed(imm12, 12);
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        case OP_IW: {
-            rs1 = getbit(inst, 12, 16);
-            imm12 = getbit(inst, 0, 11);
-            imm5 = getbit(inst, 7, 11);
-            fuc7 = getbit(inst, 0, 6);
-            PC = PC + 1;
-            switch(fuc3) {
-                case 0x0: { //addiw
-                    reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] + (signed int)ext_signed(imm12, 12)), 32);
-                    break;
-                }
-                case 0x1: { //slliw
-                    reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] << imm5), 32);
-                    break;
-                }
-                case 0x5: {
-                    if(fuc7 == 0x00) { //srliw
-                        reg[rd] = ext_signed((unsigned int)((unsigned int)reg[rs1] >> imm5), 32);
-                    } else if(fuc7 == 0x20) { //sraiw
-                        reg[rd] = ext_signed((unsigned int)((signed int)reg[rs1] >> imm5), 32);
-                    } else {
-                        printf("Error: illegal instruction %08x.\n", inst);
-                        exit_flag = 1;
-                    }
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        case OP_LW: {
-            rs1 = getbit(inst, 12, 16);
-            imm12 = getbit(inst, 0, 11);
-            unsigned long addr = (unsigned long)((signed long)reg[rs1] + (signed long)ext_signed(imm12, 12));
-            unsigned int data1 = memory[addr >> 2];
-            unsigned long data = 0;
-            switch(fuc3) { //目前没有考虑非对齐访存异常情况，比如要取的数跨越了两个字
-                case 0x0: { //lb
-                    if(addr % 4 == 0) {
-                        data = ext_signed(getbit(data1, 24, 31), 8);
-                    } else if(addr % 4 == 1) {
-                        data = ext_signed(getbit(data1, 16, 23), 8);
-                    } else if(addr % 4 == 2) {
-                        data = ext_signed(getbit(data1, 8, 15), 8);
-                    } else {
-                        data = ext_signed(getbit(data1, 0, 7), 8);
-                    }
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lb from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x1: { //lh
-                    if(addr % 2 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    if(addr % 4 == 0) {
-                        data = ext_signed(getbit(data1, 16, 31), 16);
-                    } else {
-                        data = ext_signed(getbit(data1, 0, 15), 16);
-                    }
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lh from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x2: { //lw
-                    if(addr % 4 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    data = ext_signed(data1, 32);
-                    reg[rd] = data;
-                    // if(PC == ) printf("%");
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lw from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x3: { //ld
-                    if(addr % 8 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    unsigned int data2 = memory[(addr >> 2) + 1];
-                    data = ((unsigned long)data2 << 32) + data1; //注意这里的写法，因为是小端，所以data2在左边
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "ld from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x4: { //lbu
-                    if(addr % 4 == 0) {
-                        data = (unsigned long)getbit(data1, 24, 31);
-                    } else if(addr % 4 == 1) {
-                        data = (unsigned long)getbit(data1, 16, 23);
-                    } else if(addr % 4 == 2) {
-                        data = (unsigned long)getbit(data1, 8, 15);
-                    } else {
-                        data = (unsigned long)getbit(data1, 0, 7);
-                    }
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lbu from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x5: { //lhu
-                    if(addr % 2 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    if(addr % 4 == 0) {
-                        data = (unsigned long)getbit(data1, 16, 31);
-                    } else {
-                        data = (unsigned long)getbit(data1, 0, 15);
-                    }
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lhu from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                case 0x6: { //lwu
-                    if(addr % 4 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    data = (unsigned long)data1;
-                    reg[rd] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "lwu from %016lx to reg%02d: %016lx\n", addr, rd, data);
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            PC = PC + 1;
-            break;
-        }
-        case OP_SW: {
-            rs1 = getbit(inst, 12, 16);
-            rs2 = getbit(inst, 7, 11);
-            imm7 = getbit(inst, 0, 6);
-            imm5 = getbit(inst, 20, 24);
-            unsigned int imm = (imm7 << 5) + imm5;
-            unsigned long addr = (unsigned long)((signed long)reg[rs1] + (signed long)ext_signed(imm, 12));
-            unsigned int data = 0;
-            switch(fuc3) {
-                case 0x0: { //sb
-                    if(addr % 4 == 0) {
-                        data = setbit(memory[addr >> 2], reg[rs2], 24, 31);
-                    } else if(addr % 4 == 1) {
-                        data = setbit(memory[addr >> 2], reg[rs2], 16, 23);
-                    } else if(addr % 4 == 2) {
-                        data = setbit(memory[addr >> 2], reg[rs2], 8, 15);
-                    } else {
-                        data = setbit(memory[addr >> 2], reg[rs2], 0, 7);
-                    }
-                    memory[addr >> 2] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sb from reg%02d to %016lx: %08x\n", rs2, addr, data);
-                    break;
-                }
-                case 0x1: { //sh
-                    if(addr % 2 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    if(addr % 4 == 0) {
-                        data = setbit(memory[addr >> 2], reg[rs2], 16, 31);
-                    } else {
-                        data = setbit(memory[addr >> 2], reg[rs2], 0, 15);
-                    }
-                    memory[addr >> 2] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sh from reg%02d to %016lx: %08x\n", rs2, addr, data);
-                    break;
-                }
-                case 0x2: { //sw
-                    if(addr % 4 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    data = (unsigned int)reg[rs2];
-                    memory[addr >> 2] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sw from reg%02d to %016lx: %08x\n", rs2, addr, data);
-                    break;
-                }
-                case 0x3: { //sd
-                    if(addr % 8 != 0) {
-                        printf("Error: Wrong memory access.\n");
-                        exit_flag = 1;
-                    }
-                    data = (unsigned int)(reg[rs2] >> 32);
-                    memory[(addr >> 2) + 1] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sd from reg%02d to %016lx: %08x\n", rs2, addr + 4, data);
-                    data = (unsigned int)reg[rs2];
-                    memory[addr >> 2] = data;
-                    fprintf(mlog, "PC: %016lx ", PC << 2);
-                    fprintf(mlog, "sd from reg%02d to %016lx: %08x\n", rs2, addr, data);
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            PC = PC + 1;
-            break;
-        }
-        case OP_BEQ: {
-            rs1 = getbit(inst, 12, 16);
-            rs2 = getbit(inst, 7, 11);
-            unsigned int imm1 = getbit(inst, 0, 0);
-            unsigned int imm6 = getbit(inst, 1, 6);
-            unsigned int imm4 = getbit(inst, 20, 23);
-            unsigned int imm_1 = getbit(inst, 24, 24);
-            unsigned int offset = (imm1 << 11) + (imm_1 << 10) + (imm6 << 4) + imm4;
-            // printf("B offset: %d\n", offset);
-            switch(fuc3) {
-                case 0x0: { //beq
-                    if(reg[rs1] == reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                case 0x1: { ///bne
-                    if(reg[rs1] != reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                case 0x4: { //blt
-                    if((signed long)reg[rs1] < (signed long)reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                case 0x5: { //bge
-                    if((signed long)reg[rs1] >= (signed long)reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                case 0x6: { //bltu
-                    if(reg[rs1] < reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                case 0x7: { //bgeu
-                    if(reg[rs1] >= reg[rs2]) {
-                        PC = PC + ext_signed(offset >> 1, 11);
-                    } else {
-                        PC = PC + 1;
-                    }
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        case OP_JAL: {
-            unsigned int imm1 = getbit(inst, 0, 0);
-            unsigned int imm10 = getbit(inst, 1, 10); //这里被网上指令手册坑了
-            unsigned int imm_1 = getbit(inst, 11, 11);
-            unsigned int imm8 = getbit(inst, 12, 19);
-            unsigned int offset = (imm1 << 19) + (imm8 << 11) + (imm_1 << 10) + imm10;
-            // printf("JAL %d %d %d %d\n", imm1, imm10, imm_1, imm8);
-            // printf("JAL offset: %d\n", offset);
-            reg[rd] = (PC + 1) << 2;
-            PC = PC + ext_signed(offset >> 1, 19);
-            break;
-        }
-        case OP_JALR: {
-            unsigned int imm12 = getbit(inst, 0, 11);
-            rs1 = getbit(inst, 12, 16);
-            reg[rd] = (PC + 1) << 2;
-            PC = (reg[rs1] + ext_signed(imm12, 12)) >> 2;
-            break;
-        }
-        case OP_AUIPC: {
-            imm20 = getbit(inst, 0, 19);
-            reg[rd] = (PC << 2) + ext_signed(imm20 << 12, 32);
-            PC = PC + 1;
-            break;
-        }
-        case OP_LUI: {
-            imm20 = getbit(inst, 0, 19);
-            reg[rd] = ext_signed(imm20 << 12, 32);
-            PC = PC + 1;
-            break;
-        }
-        case OP_SCALL: {
-            imm12 = getbit(inst, 0, 11);
-            // fuc7 = getbit(inst, 0, 6);
-            PC = PC + 1;
-            switch(fuc3) {
-                case 0x0: {
-                    if(imm12 == 0x0) { //ecall
-                        if(reg[10] == 1) { //以数字输出
-                            printf("%ld\n", reg[11]);
-                        } else if(reg[10] == 10) {
-                            exit_flag = 1;
-                        }
-                    } else if(imm12 == 0x1) { //ebreak
-                        printf("Ebreak Called.\n");
-                    } else {
-                        printf("Error: illegal instruction %08x.\n", inst);
-                        exit_flag = 1;
-                    }
-                    break;
-                }
-                case 0x1: { //CSRRW
-                    printf("CSRRW Called.\n");
-                    break;
-                }
-                case 0x2: { //CSRRS
-                    printf("CSRRS Called.\n");
-                    break;
-                }
-                case 0x3: { //CSRRC
-                    printf("CSRRC Called.\n");
-                    break;
-                }
-                case 0x5: { //CSRRWI
-                    printf("CSRRWI Called.\n");
-                    break;
-                }
-                case 0x6: { //CSRRSI
-                    printf("CSRRSI Called.\n");
-                    break;
-                }
-                case 0x7: { //CSRRCI
-                    printf("CSRRCI Called.\n");
-                    break;
-                }
-                default: {
-                    printf("Error: illegal instruction %08x.\n", inst);
-                    exit_flag = 1;
-                }
-            }
-            break;
-        }
-        default: {
-            printf("Error: illegal instruction %08x.\n", inst);
+void simulate_inst() {
+    pipeline_IF();
+    pipeline_ID();
+    pipeline_EX();
+    pipeline_MEM();
+    pipeline_WB();
+    update_regs();
+    inst_cycle++;
+}
+//只有在每个cycle末尾更新regs才是正确的，因为组合逻辑是并行执行
+//否则将影响产生flush和stall时的正确性
+
+void update_regs() {
+    if(IF_stall) {
+        ;
+    } else {
+        PC = NPC;
+        inst_num++;
+    }
+    if(ID_flush) reg_IFID = reg_zero;
+    else if(ID_stall) {
+        ;
+    } else {
+        reg_IFID = reg_IFID_new;
+    }
+    if(EX_flush) reg_IDEX = reg_zero;
+    else reg_IDEX = reg_IDEX_new;
+    reg_EXMEM = reg_EXMEM_new;
+    reg_MEMWB = reg_MEMWB_new;
+}
+
+void pipeline_IF() { //instruction fetch
+    unsigned int inst = memory[PC]; //memory和CPU一样都是小端
+#ifdef inst_trace
+    fprintf(ilog, "IFPC: %016lx  Inst: %08x\n", PC << 2, inst);
+#endif
+
+    NPC = PC + 1; //default not branch
+
+    reg_IFID_new = {
+        1,
+        inst,
+        PC,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    };
+}
+
+void pipeline_ID() { //instruction decode
+    if(!reg_IFID.enable) { //this is a bubble
+        reg_IDEX_new = reg_zero;
+        return;
+    }
+
+    bool r_rs1 = 0, r_rs2 = 0;
+    int  rs1, rs2;
+    struct pipeline_Reg ctrl = execute_Decode(
+        reg_IFID.inst, 
+        reg_IFID.PC,
+        r_rs1, 
+        r_rs2, 
+        rs1, 
+        rs2
+    );
+
+    bool hazard = data_hazard(
+        r_rs1,
+        r_rs2,
+        rs1,
+        rs2,
+        reg_IDEX.write_reg,
+        reg_IDEX.rd,
+        reg_EXMEM.write_reg,
+        reg_EXMEM.rd,
+        reg_MEMWB.write_reg,
+        reg_MEMWB.rd
+    );
+    if(hazard) {
+        IF_stall = 1;
+        ID_stall = 1;
+        EX_flush = 1;
+    } else {
+        IF_stall = 0;
+        ID_stall = 0;
+    }
+#ifdef inst_trace
+    fprintf(ilog, "IDPC: %016lx  Inst: %08x\n", reg_IFID.PC << 2, reg_IFID.inst);
+#endif
+    reg_IDEX_new = {
+        reg_IFID.enable,
+        reg_IFID.inst,
+        reg_IFID.PC,
+        ctrl.rd,
+        ctrl.alu_op,
+        ctrl.br_op,
+        ctrl.write_reg,
+        ctrl.mem_w,
+        ctrl.mem_r,
+        ctrl.mem_type,
+        ctrl.data1,
+        ctrl.data2,
+        ctrl.result,
+        ctrl.sdata,
+        ctrl.nextPC,
+        ctrl.syscall
+    };
+}
+
+void pipeline_EX() {
+    if(!reg_IDEX.enable) { //this is a bubble
+        reg_EXMEM_new = reg_zero;
+        ID_flush = 0;
+        EX_flush = 0;
+        return;
+    }
+
+    unsigned long alu_result = execute_ALU(
+        reg_IDEX.alu_op, 
+        reg_IDEX.data1, 
+        reg_IDEX.data2,
+        reg_IDEX.result
+    );
+
+    bool branch_taken = execute_Branch(
+        reg_IDEX.br_op, 
+        reg_IDEX.data1, 
+        reg_IDEX.data2
+    );
+
+    if(branch_taken) {
+        ID_flush = 1;
+        EX_flush = 1;
+        inst_num -= 2;
+        NPC = reg_IDEX.nextPC;
+    } else {
+        ID_flush = 0;
+        EX_flush = 0;
+    }
+#ifdef inst_trace
+    fprintf(ilog, "EXPC: %016lx  Inst: %08x\n", reg_IDEX.PC << 2, reg_IDEX.inst);
+#endif
+    reg_EXMEM_new = {
+        reg_IDEX.enable,
+        reg_IDEX.inst,
+        reg_IDEX.PC,
+        reg_IDEX.rd,
+        reg_IDEX.alu_op,
+        reg_IDEX.br_op,
+        reg_IDEX.write_reg,
+        reg_IDEX.mem_w,
+        reg_IDEX.mem_r,
+        reg_IDEX.mem_type,
+        reg_IDEX.data1,
+        reg_IDEX.data2,
+        alu_result,
+        reg_IDEX.sdata,
+        reg_IDEX.nextPC,
+        reg_IDEX.syscall
+    };
+}
+
+void pipeline_MEM() {
+    if(!reg_EXMEM.enable) {
+        reg_MEMWB_new = reg_zero;
+        return;
+    }
+
+    unsigned long ldata = execute_LSU(
+        reg_EXMEM.mem_r,
+        reg_EXMEM.mem_w,
+        reg_EXMEM.mem_type,
+        reg_EXMEM.result,
+        reg_EXMEM.sdata,
+        mlog,
+        reg_EXMEM.PC
+    );
+    
+    if(reg_EXMEM.syscall) {
+        if(reg_EXMEM.data1 == 1) { //以数字输出
+            printf("%ld\n", reg_EXMEM.data2);
+        } else if(reg_EXMEM.data1 == 10) {
             exit_flag = 1;
         }
     }
-    // if(OP==OP_SCALL)//系统调用指令
-    // {
-    //     if(fuc3==F3_SCALL&&fuc7==F7_SCALL)
-	//     {
-	// 		if(reg[17]==64)////printf
-	// 		{
-	// 			int place=0,c=0;
-	// 			const void * t=&memory[reg[11]>>2];
-	// 			reg[10]=write((unsigned int)reg[10],t,(unsigned int)reg[12]);
-	// 		}
-	// 		else if(reg[17]==63)//scanf
-	// 		else if(reg[17]==169)//time
-	// 		else if(reg[17]==93)//exit
-    //     }
-    // }
+    //syscall放到MEM级处理，前一条指令正好被写回
+#ifdef inst_trace
+    fprintf(ilog, "MEMPC: %016lx  Inst: %08x\n", reg_EXMEM.PC << 2, reg_EXMEM.inst);
+#endif
+    reg_MEMWB_new = {
+        reg_EXMEM.enable,
+        reg_EXMEM.inst,
+        reg_EXMEM.PC,
+        reg_EXMEM.rd,
+        reg_EXMEM.alu_op,
+        reg_EXMEM.br_op,
+        reg_EXMEM.write_reg,
+        reg_EXMEM.mem_w,
+        reg_EXMEM.mem_r,
+        reg_EXMEM.mem_type,
+        reg_EXMEM.data1,
+        reg_EXMEM.data2,
+        (reg_EXMEM.mem_r ? ldata : reg_EXMEM.result),
+        reg_EXMEM.sdata,
+        reg_EXMEM.nextPC,
+        reg_EXMEM.syscall
+    };
 }
 
+void pipeline_WB() {
+    if(!reg_MEMWB.enable) {
+        return;
+    }
 
-
-
-
-
-
-
-
-
-
+    if(reg_MEMWB.write_reg) {
+        reg[reg_MEMWB.rd] = reg_MEMWB.result;
+    }
+#ifdef inst_trace
+    fprintf(ilog, "WBPC: %016lx  Inst: %08x\n", reg_MEMWB.PC << 2, reg_MEMWB.inst);
+    fprintf(ilog, "Write to reg%02d: %016lx\n", reg_MEMWB.rd, reg_MEMWB.result);
+#endif
+}
