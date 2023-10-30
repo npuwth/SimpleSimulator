@@ -45,9 +45,9 @@ int main(int argc, char* argv[])
 	read_elf(); //解析elf文件
 	load_memory(); //加载代码数据至内存
     // entry = 0x10184; //main函数起始地址
-    // entry = 0x10244; //ackermann
+    entry = 0x10244; //ackermann
     // entry = 0x102c4; //gemm
-    entry = 0x1032c; //quicksort
+    // entry = 0x1032c; //quicksort
 	PC = entry >> 2;  //PC以4个字节对齐，指令长度4字节
 	reg[3] = gp;      //设置全局数据段地址寄存器
 	reg[2] = MAX / 2; //设置栈基址sp寄存器
@@ -196,7 +196,7 @@ void update_regs() {
         ;
     } else {
         PC = NPC;
-        inst_num++;
+        // inst_num++;
     }
     if(ID_flush) reg_IFID = reg_zero;
     else if(ID_stall) {
@@ -332,7 +332,7 @@ void pipeline_EX() {
         fprintf(ilog, "branch: %016lx  NPC: %016lx\n", reg_IDEX.PC << 2, reg_IDEX.nextPC << 2);
 #endif
         mispre_occur = 1;
-        inst_num -= 2; //有两条是无效的
+        // inst_num -= 2; //有两条是无效的
         NPC = reg_IDEX.nextPC;
         mispre_num++;
     } else {
@@ -384,6 +384,7 @@ void pipeline_MEM() {
             printf("%ld\n", reg_EXMEM.data2);
         } else if(reg_EXMEM.data1 == 10) {
             exit_flag = 1;
+            inst_num++;
         }
     }
     //syscall放到MEM级处理，前一条指令正好被写回
@@ -415,6 +416,8 @@ void pipeline_MEM() {
 void pipeline_WB() {
     if(!reg_MEMWB.enable) {
         return;
+    } else {
+        inst_num++;
     }
 
     if(reg_MEMWB.write_reg) {
