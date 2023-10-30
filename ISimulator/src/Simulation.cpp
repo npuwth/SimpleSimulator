@@ -183,6 +183,7 @@ void simulate_inst() {
 //否则将影响产生flush和stall时的正确性
 
 void update_regs() {
+    EX_flush = stall_EX_flush | mispre_EX_flush;
     if(IF_stall) {
         ;
     } else {
@@ -203,8 +204,9 @@ void update_regs() {
 
 void pipeline_IF() { //instruction fetch
     unsigned int inst = memory[PC]; //memory和CPU一样都是小端
+
 #ifdef inst_trace
-    fprintf(ilog, "IFPC: %016lx  Inst: %08x\n", PC << 2, inst);
+    fprintf(ilog, "IFPC:  %016lx  Inst: %08x\n", PC << 2, inst);
 #endif
 
     NPC = PC + 1; //default not branch
@@ -232,6 +234,9 @@ void pipeline_IF() { //instruction fetch
 void pipeline_ID() { //instruction decode
     if(!reg_IFID.enable) { //this is a bubble
         reg_IDEX_new = reg_zero;
+        IF_stall = 0;
+        ID_stall = 0;
+        stall_EX_flush = 0;
         return;
     }
 
@@ -261,14 +266,18 @@ void pipeline_ID() { //instruction decode
     if(hazard) {
         IF_stall = 1;
         ID_stall = 1;
-        EX_flush = 1;
+        stall_EX_flush = 1;
+        stall_num++;
     } else {
         IF_stall = 0;
         ID_stall = 0;
+        stall_EX_flush = 0;
     }
+
 #ifdef inst_trace
-    fprintf(ilog, "IDPC: %016lx  Inst: %08x\n", reg_IFID.PC << 2, reg_IFID.inst);
+    fprintf(ilog, "IDPC:  %016lx  Inst: %08x\n", reg_IFID.PC << 2, reg_IFID.inst);
 #endif
+
     reg_IDEX_new = {
         reg_IFID.enable,
         reg_IFID.inst,
@@ -293,7 +302,7 @@ void pipeline_EX() {
     if(!reg_IDEX.enable) { //this is a bubble
         reg_EXMEM_new = reg_zero;
         ID_flush = 0;
-        EX_flush = 0;
+        mispre_EX_flush = 0;
         return;
     }
 
@@ -312,16 +321,18 @@ void pipeline_EX() {
 
     if(branch_taken) {
         ID_flush = 1;
-        EX_flush = 1;
+        mispre_EX_flush = 1;
         inst_num -= 2;
         NPC = reg_IDEX.nextPC;
     } else {
         ID_flush = 0;
-        EX_flush = 0;
+        mispre_EX_flush = 0;
     }
+
 #ifdef inst_trace
-    fprintf(ilog, "EXPC: %016lx  Inst: %08x\n", reg_IDEX.PC << 2, reg_IDEX.inst);
+    fprintf(ilog, "EXPC:  %016lx  Inst: %08x\n", reg_IDEX.PC << 2, reg_IDEX.inst);
 #endif
+
     reg_EXMEM_new = {
         reg_IDEX.enable,
         reg_IDEX.inst,
@@ -366,9 +377,11 @@ void pipeline_MEM() {
         }
     }
     //syscall放到MEM级处理，前一条指令正好被写回
+
 #ifdef inst_trace
     fprintf(ilog, "MEMPC: %016lx  Inst: %08x\n", reg_EXMEM.PC << 2, reg_EXMEM.inst);
 #endif
+
     reg_MEMWB_new = {
         reg_EXMEM.enable,
         reg_EXMEM.inst,
@@ -397,8 +410,10 @@ void pipeline_WB() {
     if(reg_MEMWB.write_reg) {
         reg[reg_MEMWB.rd] = reg_MEMWB.result;
     }
+
 #ifdef inst_trace
     fprintf(ilog, "WBPC: %016lx  Inst: %08x\n", reg_MEMWB.PC << 2, reg_MEMWB.inst);
     fprintf(ilog, "Write to reg%02d: %016lx\n", reg_MEMWB.rd, reg_MEMWB.result);
 #endif
+
 }

@@ -10,10 +10,14 @@ unsigned long PC = 0;
 unsigned long NPC = 0;
 long inst_num = 0; //运行指令数
 long inst_cycle = 0; //运行周期数
+long stall_num = 0; //阻塞周期数
 bool IF_stall; //阻塞，使PC保持不变
 bool ID_stall; //阻塞，使reg_IFID保持不变
 bool ID_flush; //清空reg_IFID
 bool EX_flush; //清空reg_IDEX
+
+bool stall_EX_flush;
+bool mispre_EX_flush;
 
 void print_regs();
 void cmd_shell();
