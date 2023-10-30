@@ -45,9 +45,9 @@ int main(int argc, char* argv[])
 	read_elf(); //解析elf文件
 	load_memory(); //加载代码数据至内存
     // entry = 0x10184; //main函数起始地址
-    entry = 0x10244; //ackermann
+    // entry = 0x10244; //ackermann
     // entry = 0x102c4; //gemm
-    // entry = 0x1032c; //quicksort
+    entry = 0x1032c; //quicksort
 	PC = entry >> 2;  //PC以4个字节对齐，指令长度4字节
 	reg[3] = gp;      //设置全局数据段地址寄存器
 	reg[2] = MAX / 2; //设置栈基址sp寄存器
@@ -135,6 +135,10 @@ void cmd_shell() {
                     reg[0] = 0;
 	            }
                 printf("Instruction Num: %ld\n", inst_num);
+                printf("Total Cycle Num: %ld\n", inst_cycle);
+                printf("Stall Cycle Num: %ld\n", stall_num);
+                printf("Average CPI: %f\n", inst_cycle*1.0 / inst_num);
+                printf("Misprediction Rate: %ld / %ld: %f\n", mispre_num, branch_num, mispre_num*1.0 / branch_num);
                 break;
             }
             case 'h': { //打印帮助信息
@@ -183,8 +187,12 @@ void simulate_inst() {
 //否则将影响产生flush和stall时的正确性
 
 void update_regs() {
-    EX_flush = stall_EX_flush | mispre_EX_flush;
-    if(IF_stall & ~mispre) {
+    bool IF_stall = hazard_occur & ~mispre_occur;
+    bool ID_stall = hazard_occur;
+    bool ID_flush = mispre_occur;
+    bool EX_flush = hazard_occur | mispre_occur;
+
+    if(IF_stall) {
         ;
     } else {
         PC = NPC;
@@ -234,9 +242,7 @@ void pipeline_IF() { //instruction fetch
 void pipeline_ID() { //instruction decode
     if(!reg_IFID.enable) { //this is a bubble
         reg_IDEX_new = reg_zero;
-        IF_stall = 0;
-        ID_stall = 0;
-        stall_EX_flush = 0;
+        hazard_occur = 0;
         return;
     }
 
@@ -264,14 +270,10 @@ void pipeline_ID() { //instruction decode
         reg_MEMWB.rd
     );
     if(hazard) {
-        IF_stall = 1;
-        ID_stall = 1;
-        stall_EX_flush = 1;
+        hazard_occur = 1;
         stall_num++;
     } else {
-        IF_stall = 0;
-        ID_stall = 0;
-        stall_EX_flush = 0;
+        hazard_occur = 0;
     }
 
 #ifdef inst_trace_all
@@ -301,18 +303,21 @@ void pipeline_ID() { //instruction decode
 void pipeline_EX() {
     if(!reg_IDEX.enable) { //this is a bubble
         reg_EXMEM_new = reg_zero;
-        ID_flush = 0;
-        mispre_EX_flush = 0;
-        mispre = 0;
+        mispre_occur = 0;
         return;
     }
 
+    // bool alu_busy;
+    //这里对乘除法进行了简化，不用busy控制逻辑了，直接加上额外的周期
+    int alu_cycle = 1; //默认1周期
     unsigned long alu_result = execute_ALU(
         reg_IDEX.alu_op, 
         reg_IDEX.data1, 
         reg_IDEX.data2,
-        reg_IDEX.result
+        reg_IDEX.result,
+        alu_cycle
     );
+    inst_cycle += (alu_cycle - 1);
 
     bool branch_taken = execute_Branch(
         reg_IDEX.br_op, 
@@ -320,17 +325,18 @@ void pipeline_EX() {
         reg_IDEX.data2
     );
 
+    if(reg_IDEX.br_op != BR_NOP) branch_num++;
+
     if(branch_taken) {
+#ifdef inst_trace
         fprintf(ilog, "branch: %016lx  NPC: %016lx\n", reg_IDEX.PC << 2, reg_IDEX.nextPC << 2);
-        ID_flush = 1;
-        mispre_EX_flush = 1;
-        mispre = 1;
-        inst_num -= 2;
+#endif
+        mispre_occur = 1;
+        inst_num -= 2; //有两条是无效的
         NPC = reg_IDEX.nextPC;
+        mispre_num++;
     } else {
-        ID_flush = 0;
-        mispre_EX_flush = 0;
-        mispre = 0;
+        mispre_occur = 0;
     }
 
 #ifdef inst_trace_all

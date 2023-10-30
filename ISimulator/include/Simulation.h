@@ -10,15 +10,12 @@ unsigned long PC = 0;
 unsigned long NPC = 0;
 long inst_num = 0; //运行指令数
 long inst_cycle = 0; //运行周期数
-long stall_num = 0; //阻塞周期数
-bool IF_stall; //阻塞，使PC保持不变
-bool ID_stall; //阻塞，使reg_IFID保持不变
-bool ID_flush; //清空reg_IFID
-bool EX_flush; //清空reg_IDEX
+long stall_num = 0; //阻塞周期数（数据冒险）
+long branch_num = 0; //分支预测数目
+long mispre_num = 0; //预测错误数目
 
-bool stall_EX_flush;
-bool mispre_EX_flush;
-bool mispre;
+bool hazard_occur = 0; //发生数据冒险
+bool mispre_occur = 0; //发生分支预测错误
 
 void print_regs();
 void cmd_shell();

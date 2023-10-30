@@ -34,7 +34,7 @@ struct pipeline_Reg { //16
 
 #define reg_zero {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-unsigned long execute_ALU(int alu_op, unsigned long alu_in1, unsigned long alu_in2, unsigned long result);
+unsigned long execute_ALU(int alu_op, unsigned long alu_in1, unsigned long alu_in2, unsigned long result, int &cycle);
 bool data_hazard(bool r_rs1, bool r_rs2, int rs1, int rs2, bool EX_write, int EX_rd, bool MEM_write, int MEM_rd, bool WB_write, int WB_rd);
 struct pipeline_Reg execute_Decode(unsigned int inst, unsigned long PC, bool &r_rs1, bool &r_rs2, int &rs1, int &rs2);
 bool execute_Branch(int br_op, unsigned long alu_in1, unsigned long alu_in2);
