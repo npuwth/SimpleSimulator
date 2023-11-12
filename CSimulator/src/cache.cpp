@@ -62,27 +62,31 @@ void Cache::update_replacement(uint32_t index, int blockID) {
 }
 
 int Cache::evict_block(int blockID) {
+	int time = 0;
 	if(!this->blocks[blockID].valid) return;
 	if(this->blocks[blockID].dirty) { //需要写回
 		int index = blockID - cc.associativity * set_num;
 		uint64_t block_addr = this->blocks[blockID].tag << (index_bit + offset_bit) + index << offset_bit;
-		this->lower_->HandleRequest(block_addr, cc.block_size, 0, this->blocks[blockID].data, time);
+		time = this->lower_->HandleRequest(block_addr, cc.block_size, 0, this->blocks[blockID].data);
 	} else { //直接丢弃
 		;
 	}
 	this->blocks[blockID].valid = 0;
+	return time; //evict time
 }
 
 int Cache::get_missed_block(uint64_t tag, uint32_t index, int &blockID) {
+	int time = 0;
 	uint64_t block_addr = tag << (index_bit + offset_bit) + index << offset_bit;
 	blockID = get_replacementID(index);
-	evict_block(blockID, time);
-	this->lower_->HandleRequest(block_addr, cc.block_size, 1, this->blocks[blockID].data, time);
+	time = evict_block(blockID);
+	time += this->lower_->HandleRequest(block_addr, cc.block_size, 1, this->blocks[blockID].data);
 	this->blocks[blockID].valid = 1;
 	this->blocks[blockID].tag   = tag;
 	this->blocks[blockID].cnt   = 0;
 	this->blocks[blockID].dirty = 0;
 	update_replacement(index, blockID);
+	return time; //refill time
 }
 
 int Cache::HandleRequest(uint64_t addr, int bytes, int read, vector<uint64_t> &content) {
@@ -106,7 +110,7 @@ int Cache::HandleRequest(uint64_t addr, int bytes, int read, vector<uint64_t> &c
 				for(int i = 0; i < bytes / 8; i++) {
 					data[offset_index + i] = content[i];
 				}
-				this->lower_->HandleRequest(addr, bytes, 1, content, time);
+				this->lower_->HandleRequest(addr, bytes, 1, content);
 				//write buffer可以认为不占用时间？
 			} else {
 				//只写入cache，逐出时写回下级存储，标记dirty
@@ -119,20 +123,21 @@ int Cache::HandleRequest(uint64_t addr, int bytes, int read, vector<uint64_t> &c
 		update_replacement(index, blockID);
 	} else { //miss
 		if(read) { //read
-			get_missed_block(tag, index, blockID, time);
-			this->HandleRequest(addr, bytes, 0, content, time); //递归调用自身进行处理
+			time += get_missed_block(tag, index, blockID);
+			this->HandleRequest(addr, bytes, 0, content); //递归调用自身进行处理
 		} else { //write
 			if(cc.write_allocate) {
 				//把下级存储中的块调入cache，然后修改
-				get_missed_block(tag, index, blockID, time);
-				this->HandleRequest(addr, bytes, 1, content, time);
+				time += get_missed_block(tag, index, blockID);
+				this->HandleRequest(addr, bytes, 1, content);
 			} else {
 				//直接把数据写入下级存储，不调入cache
-				this->lower_->HandleRequest(addr, bytes, 1, content, time);
+				this->lower_->HandleRequest(addr, bytes, 1, content);
+				//write buffer可以认为不占用时间？
 			}
 		}
 	}
-	return;
+	return time;
 }
 
 //Below is used by lab3.2
