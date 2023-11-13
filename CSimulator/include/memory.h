@@ -8,7 +8,7 @@ public:
     Memory() {}
     ~Memory() {}
     //Main access process
-    int HandleRequest(uint64_t addr, int bytes, int read, vector<uint64_t> &content) {
+    int handle_request(uint64_t addr, int bytes, int read, vector<uint64_t> &content) {
   		int time = this->latency_.hit_latency + this->latency_.bus_latency;
   		stats_.access_time += time;
 #ifndef TEST_MEMORY

@@ -17,4 +17,4 @@
 # 	rm -rf sim *.o
 
 all: src/*.cpp
-	g++ -Iinclude -o build/CSimulator src/*.cpp
+	g++ -g -Iinclude -o build/CSimulator src/*.cpp

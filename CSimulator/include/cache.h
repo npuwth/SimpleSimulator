@@ -17,13 +17,15 @@ typedef struct CacheConfig_ {
     int r_policy;       //replacement policy
 } CacheConfig;
 
-typedef struct Block_ {
+struct Block {
     bool valid;
     bool dirty;
     uint64_t tag;
     uint32_t cnt;
-    vector<uint64_t> data; //必须是8字节的整数倍
-} Block;
+    vector<uint64_t> data; //必须是8字节的整数倍大小
+    Block() {}
+    ~Block() {}
+};
 
 class Cache: public Storage {
 public:
@@ -38,24 +40,30 @@ public:
             this->blocks[i].dirty = 0;
             this->blocks[i].tag   = 0;
             this->blocks[i].data  = vector<uint64_t>(cc.block_size / 8);
+            // printf("data size: %ld\n", this->blocks[i].data.size());
         }
         this->offset_bit = (int)log2(cc.block_size);
         this->index_bit  = (int)log2(set_num);
         this->tag_bit    = ADDR_BIT - index_bit - offset_bit;
         printf("Cache Structure:\n");
+        // printf("Block num: %d\n", block_num);
         printf("%d-bit tag, %d-bit index, %d-bit offset, %d set_num\n", tag_bit, index_bit, offset_bit, set_num);
 	}
+    ~Cache() {}
 	//Set lower storage
-    void SetLower(Storage *ll) { this->lower_ = ll; }
+    void set_lower(Storage *ll) { this->lower_ = ll; }
     //Request handler
-    int HandleRequest(uint64_t addr, int bytes, int read, vector<u_int64_t> &content);
+    int handle_request(uint64_t addr, int bytes, int read, vector<u_int64_t> &content);
     bool hit_or_miss(uint32_t index, uint64_t tag, int &blockID);
     int get_replacementID(uint32_t index);
     void update_replacement(uint32_t index, int blockID);
     int get_missed_block(uint64_t tag, uint32_t index, int &blockID);
-    int evict_block(int blockID);
+    int evict_block(int index, int blockID);
     //get tag, index, offset from addr
     uint64_t parse_addr(uint64_t addr, int s, int e) {
+        //63 ----------- 0
+        //tag index offset
+        //s - e
 #ifndef TEST_MEMORY
         if(addr >> 32 != 0) {
             printf("Error: Addr use high 32 bits.\n");

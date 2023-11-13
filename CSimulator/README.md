@@ -8,7 +8,8 @@ Features:
 5. support LRU, LFU, FIFO replacement policy
 
 Usage:
-TODO
+- Compile: `mkdir build; make`
+- Run: `./build/CSimulator trace_file.txt`
 
 CSimulator V1.0
 
