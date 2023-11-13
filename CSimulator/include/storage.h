@@ -18,7 +18,7 @@ using namespace std;
 typedef struct StorageStats_ {
     int access_counter; //访问次数
     int miss_num;       //miss次数
-    int access_time;    //访问时间In nanoseconds
+    // int access_time;    //访问时间In nanoseconds
     int replace_num;    //逐出次数
     // int fetch_num;      //Fetch lower layer
     // int prefetch_num;   //Prefetch

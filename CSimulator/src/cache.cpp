@@ -97,7 +97,7 @@ int Cache::handle_request(uint64_t addr, int bytes, int read, vector<uint64_t> &
 	uint32_t offset = (uint32_t)parse_addr(addr, this->tag_bit + this->index_bit, 63);
 	uint32_t index  = (uint32_t)parse_addr(addr, this->tag_bit, this->tag_bit + this->index_bit - 1);
 	uint64_t tag    = parse_addr(addr, 0, this->tag_bit - 1);
-	printf("addr: %lx, tag: %lx, index: %x, offset: %x\n", addr, tag, index, offset);
+	// printf("addr: %lx, tag: %lx, index: %x, offset: %x\n", addr, tag, index, offset);
 	int blockID;
 	int offset_index = offset / 8; //which word in cacheline, a word = 8 bytes
 	int hit = hit_or_miss(index, tag, blockID);
