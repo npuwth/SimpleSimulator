@@ -92,6 +92,32 @@ int Cache::get_missed_block(uint64_t tag, uint32_t index, int &blockID) {
 	return time; //refill time
 }
 
+void Cache::write_byte(uint64_t addr, int bytes, int blockID, uint64_t data) {
+	uint32_t offset = (uint32_t)parse_addr(addr, this->tag_bit + this->index_bit, 63);
+	int offset_index = offset / 8;
+	uint64_t old_data = this->blocks[blockID].data[offset_index];
+	uint64_t new_data;
+	if(bytes == 1) {
+		if(addr % 4 == 0) {
+			new_data = setbit(old_data, data, 24, 31);
+		} else if(addr % 4 == 1) {
+			new_data = setbit(old_data, data, 16, 23);
+		} else if(addr % 4 == 2) {
+			new_data = setbit(old_data, data, 8, 15);
+		} else {
+			new_data = 
+		}
+	} else if(bytes = 2) {
+		if(addr % 2 == 0) {
+			
+		}
+	} else if(bytes = 4) {
+
+	} else {
+
+	}
+}
+
 int Cache::handle_request(uint64_t addr, int bytes, int read, vector<uint64_t> &content) {
     int time = this->latency_.bus_latency + this->latency_.hit_latency;
 	uint32_t offset = (uint32_t)parse_addr(addr, this->tag_bit + this->index_bit, 63);

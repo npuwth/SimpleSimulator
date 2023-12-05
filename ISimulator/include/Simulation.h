@@ -66,6 +66,16 @@ unsigned int getbit(unsigned int inst, int s, int e)
     return ((inst & mask) >> (31 - e));
 }
 
+uint64_t getbit(uint64_t addr, int s, int e) {
+    uint64_t mask = 0;
+    uint64_t k = (1UL << (63 - e));
+    for(int i = s; i <= e; i++) {
+        mask += k;
+        k = (k << 1);
+    }
+    return ((addr & mask) >> (63 - e));
+}
+
 unsigned int setbit(unsigned int target, unsigned int reg, int s, int e) {
     unsigned int mask = 0;
     unsigned int data = 0;

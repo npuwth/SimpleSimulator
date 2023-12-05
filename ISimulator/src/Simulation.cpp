@@ -13,8 +13,18 @@ extern unsigned int madr;
 extern unsigned long entry;
 extern FILE *file;
 bool exit_flag = 0; //所有指令运行完成指示
-unsigned int memory[MAX] = {0};
+// unsigned int memory[MAX] = {0};
 REG reg[32] = {0};
+Memory m;
+CacheConfig cc = {
+    32*1024, //cache size
+    4,      //associativity
+    32,      //block_size
+    0,      //back|through
+    1,      //no-alc|alc
+    LRU
+};
+Cache l1(cc);
 
 void print_regs() { //打印寄存器
     printf("Registers(0 ~ 31):\n");
@@ -116,7 +126,9 @@ void cmd_shell() {
                 unsigned long addr;
                 printf("Please enter an address.\n> ");
                 scanf("%ld%c", &addr, &t);
-                printf("Memory at %016lx: %08x\n", addr, memory[addr >> 2]);
+                vector<uint64_t> content(1);
+                l1.handle_request(addr, 8, READ, content);
+                printf("Memory at %016lx: %016lx\n", addr, content[0]);
                 break;
             }
             case 'a': { //直接执行至结束
@@ -161,11 +173,12 @@ void cmd_shell() {
 
 void load_memory()
 {
-	// vadr = 0x10000000;
     fseek(file, cadr, SEEK_SET);
-	fread(&memory[vadr >> 2], 1, csize, file); //memory以4字节对齐
+    //vadr必须以8字节对齐
+	fread(&m.memory[vadr >> 3], 1, csize, file); //memory以8字节对齐
     fseek(file, dadr, SEEK_SET);
-    fread(&memory[gp >> 2], 1, dsize, file);
+    //gp必须以8字节对齐
+    fread(&m.memory[gp >> 3], 1, dsize, file);
 	fclose(file);
     //debug
     // printf("Text in Memory: %016lx\n", vadr);
@@ -185,6 +198,7 @@ void simulate_inst() {
 }
 //只有在每个cycle末尾更新regs才是正确的，因为组合逻辑是并行执行
 //否则将影响产生flush和stall时的正确性
+//或者可以反向仿真流水级，从WB到IF
 
 void update_regs() {
     bool IF_stall = hazard_occur & ~mispre_occur;
@@ -211,7 +225,17 @@ void update_regs() {
 }
 
 void pipeline_IF() { //instruction fetch
-    unsigned int inst = memory[PC]; //memory和CPU一样都是小端
+    unsigned int inst;
+    vector<uint64_t> content(1);
+    uint64_t addr = PC >> 1;
+    addr = addr << 3;
+    l1.handle_request(addr, 8, READ, content);
+    if(PC % 2 == 0) {
+        inst = (uint32_t)getbit(content[0], 32, 63);
+    } else {
+        inst = (uint32_t)getbit(content[0], 0, 31);
+    }
+    // unsigned int inst = memory[PC]; //memory和CPU一样都是小端
 
 #ifdef inst_trace_all
     fprintf(ilog, "IFPC:  %016lx  Inst: %08x\n", PC << 2, inst);

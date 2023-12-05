@@ -25,7 +25,7 @@ public:
         return time;
 	}
 
-private:
+public:
 #ifndef TEST_MEMORY
     uint64_t memory[MAX / 8]; //4GB
 #endif

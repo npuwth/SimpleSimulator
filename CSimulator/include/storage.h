@@ -13,7 +13,7 @@ using namespace std;
 #define ADDR_BIT 64
 #define READ 1
 #define WRITE 0
-#define TEST_MEMORY
+// #define TEST_MEMORY
 
 typedef struct StorageStats_ {
     int access_counter; //访问次数

@@ -59,16 +59,17 @@ public:
     void update_replacement(uint32_t index, int blockID);
     int get_missed_block(uint64_t tag, uint32_t index, int &blockID);
     int evict_block(int index, int blockID);
+    void write_byte(uint64_t addr, int bytes, int blockID, uint64_t data);
     //get tag, index, offset from addr
     uint64_t parse_addr(uint64_t addr, int s, int e) {
         //63 ----------- 0
         //tag index offset
         //s - e
-#ifndef TEST_MEMORY
-        if(addr >> 32 != 0) {
-            printf("Error: Addr use high 32 bits.\n");
-        }
-#endif
+// #ifndef TEST_MEMORY
+//         if(addr >> 32 != 0) {
+//             printf("Error: Addr use high 32 bits.\n");
+//         }
+// #endif
         uint64_t mask = 0;
         uint64_t k = (1UL << (63 - e));
         for(int i = s; i <= e; i++) {
@@ -76,6 +77,29 @@ public:
             k = (k << 1);
         }
         return ((addr & mask) >> (63 - e));
+    }
+
+    uint64_t setbit(uint64_t target, uint64_t reg, int s, int e, int bytes) {
+        uint64_t mask = 0;
+        uint64_t data = 0;
+        if(bytes == 1) {
+            data = parse_addr(reg, 56, 63);
+        } else if(bytes == 2) {
+            data = parse_addr(reg, 48, 63);
+        } else if(bytes == 4) {
+            data = parse_addr(reg, 32, 63);
+        } else {
+            data = reg;
+        }
+        data = (data << (63 - e));
+        uint64_t k = (1UL << (63 - e));
+        for(int i = s; i <= e; i++) {
+            mask += k;
+            k = (k << 1);
+        }
+        mask = mask ^ 0;
+        target = target & mask;
+        return (target | data);
     }
 
 private:

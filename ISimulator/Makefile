@@ -18,5 +18,5 @@
 # 	$(RM) $(BUILD_PATH)/*.o $(BUILD_PATH)/$(TARGET) *~ core
 
 all: src/*.cpp
-	g++ -Iinclude -o build/ISimulator src/*.cpp
+	g++ -Iinclude -I../CSimulator/include -o build/ISimulator src/*.cpp ../CSimulator/src/cache.cpp
 

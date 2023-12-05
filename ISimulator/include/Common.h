@@ -6,6 +6,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 #include "Decode.h"
+#include "cache.h"
 
 #define MAX 100000000
 #define inst_trace 1
